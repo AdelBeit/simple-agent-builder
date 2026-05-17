@@ -36,18 +36,24 @@ def startup():
 @app.post("/webhook/call")
 async def handle_call(request: Request, background_tasks: BackgroundTasks):
     payload = await request.json()
-    call_id = payload.get("callId") or payload.get("id", "unknown")
+    print(f"[CALL] Payload: {payload}")
+    data = payload.get("data", payload)  # AgentPhone wraps fields in "data"
     event = payload.get("event") or payload.get("type", "")
-    agentphone_number = payload.get("to") or payload.get("toNumber", "")
+    call_id = data.get("callId") or payload.get("callId") or payload.get("id", "unknown")
+    agentphone_number = data.get("to") or payload.get("to") or payload.get("toNumber", "")
+
+    # Ignore call_ended events
+    if event == "agent.call_ended":
+        return JSONResponse({"status": "ok"})
 
     # Look up the business this number belongs to
     business = get_business_by_number(agentphone_number) if agentphone_number else None
 
-    if event in ("call.started", "call_started", "new_call", ""):
+    if event in ("call.started", "call_started", "new_call") or call_id not in active_calls:
         active_calls[call_id] = {"history": [], "transcript": "", "business": business}
         return JSONResponse({"text": BEGIN_MESSAGE, "hangup": False})
 
-    caller_text = payload.get("text") or payload.get("transcript") or payload.get("message", "")
+    caller_text = data.get("transcript") or payload.get("text") or payload.get("transcript") or payload.get("message", "")
     if not caller_text:
         return JSONResponse({"text": "", "hangup": False})
 

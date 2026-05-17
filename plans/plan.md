@@ -15,3 +15,11 @@ The demo path — what is the single happiest-path flow I need to guarantee work
 Python vs Node — given this specific stack (AgentPhone, AgentMail, Moss, Browser Use, Supermemory, Stripe, Sponge), which language has better SDK support and will be faster to build in today?
 
 Be opinionated. I don't have time for "it depends." Tell me what to do.
+
+---
+
+## Gap Tracker
+
+### [GAP-2] No fallback when business has no contact form
+
+**Description:** LeadSaver currently only submits leads via Browser Use filling out a contact form. If a business has no contact form on their site, the lead is lost. Add an AgentMail fallback so the custom agent can email the lead details directly to the business owner when no form is detected.
