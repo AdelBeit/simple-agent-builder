@@ -184,6 +184,6 @@ NGROK_WEBSITE=
 - AgentMail onboarding interview flow ✅ built
 - Browser Use scraping during onboarding ✅ built
 - Moss RAG over scraped business website (currently runs against SQLite `profile_text` — flat string, works for demo, degrades at scale)
-- Sponge per-session micropayments
 - Stripe subscription link in welcome email
 - Supermemory (swap in as vector store backing Moss RAG when profiles get large or multi-tenant scale matters)
+- Sponge per-session micropayments
