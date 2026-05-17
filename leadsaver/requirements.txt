@@ -5,3 +5,4 @@ python-dotenv>=1.0.0
 google-genai>=1.0.0
 langchain-google-genai>=1.0.0
 browser-use>=0.1.0
+stripe>=8.0.0
