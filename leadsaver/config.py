@@ -34,6 +34,10 @@ BUSINESS = {
     ],
 }
 
+# Stripe
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_PAYMENT_LINK = os.getenv("STRIPE_PAYMENT_LINK", "https://buy.stripe.com/leadsaver")
+
 # AgentMail
 AGENTMAIL_API_KEY = os.getenv("AGENTMAIL_API_KEY")
 AGENTMAIL_BASE_URL = "https://api.agentmail.to/v0"

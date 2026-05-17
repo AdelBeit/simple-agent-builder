@@ -1,6 +1,6 @@
 import re
 import httpx
-from config import AGENTMAIL_API_KEY, AGENTMAIL_BASE_URL, AGENTMAIL_DOMAIN, NGROK_DOMAIN
+from config import AGENTMAIL_API_KEY, AGENTMAIL_BASE_URL, AGENTMAIL_DOMAIN, NGROK_DOMAIN, STRIPE_PAYMENT_LINK
 
 
 def _headers():
@@ -76,6 +76,8 @@ Your LeadSaver setup is complete. Here's what we've got on file:
 
 Something off? Just reply to this email — we'll fix it right away.
 
+To activate your subscription ($49/mo): {STRIPE_PAYMENT_LINK}
+
 — LeadSaver
 """
 
@@ -88,7 +90,12 @@ Something off? Just reply to this email — we'll fix it right away.
 </table>
 <h3 style="margin-top:20px; font-size:15px;">Services</h3>
 <ul style="margin-top:4px;">{services_li}</ul>
-<p style="margin-top:24px; color:#555;">Something off? Just reply to this email — we'll fix it right away.</p>"""
+<p style="margin-top:24px; color:#555;">Something off? Just reply to this email — we'll fix it right away.</p>
+<p style="margin-top:16px;">
+  <a href="{STRIPE_PAYMENT_LINK}" style="background:#0a1f44; color:#fff; padding:12px 24px; border-radius:6px; text-decoration:none; font-weight:600; font-size:15px;">
+    Activate subscription — $49/mo
+  </a>
+</p>"""
 
     html = _html_wrap(f"Your AI receptionist is ready — {name} ✅", body_html)
 
