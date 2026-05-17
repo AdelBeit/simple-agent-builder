@@ -26,7 +26,7 @@ def create_inbox(business_name: str) -> dict:
     )
     resp.raise_for_status()
     data = resp.json()
-    inbox_id = data.get("id") or data.get("inboxId")
+    inbox_id = data.get("inbox_id") or data.get("email")
     email = data.get("email") or f"{username}@{AGENTMAIL_DOMAIN}"
     return {"id": inbox_id, "email": email}
 
