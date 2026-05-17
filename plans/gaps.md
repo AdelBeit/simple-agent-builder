@@ -2,13 +2,6 @@
 
 ---
 
-### [GAP-1] Email format polish
-**Description:** Lead notification and config summary emails are plain text with minimal formatting. Polish both templates to be more professional — clear sections, business name in subject line, readable layout, and a consistent signature.
-**Priority:** Low — works, just rough
-**Files:** `leadsaver/agentmail.py` → `send_config_summary()`, `send_lead_notification()`
-
----
-
 ### [GAP-2] No fallback when business has no contact form
 **Description:** LeadSaver only submits leads via Browser Use filling out a contact form. If a business has no contact form, the lead is lost. Add an AgentMail fallback so the agent emails lead details directly to the business owner when no form is detected.
 **Priority:** Medium — affects real businesses without contact forms

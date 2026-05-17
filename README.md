@@ -1,6 +1,5 @@
 # Hire a Receptionist
-
-AI-powered missed-call lead capture for small businesses. When a customer calls and the owner misses it, an AI answers, collects lead info, and automatically submits it to the business's contact form.
+> LeadSaver — AI-powered missed-call lead capture for small businesses When a customer calls and the owner misses it, an AI answers, collects lead info, and automatically submits it to the business's contact form.
 
 Built at a hackathon. Target customers: plumbers, roofers, contractors.
 
