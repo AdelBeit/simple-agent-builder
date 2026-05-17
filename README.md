@@ -181,9 +181,9 @@ NGROK_WEBSITE=
 
 ## Post-MVP Backlog
 
-- Supermemory for persistent business profiles
-- AgentMail onboarding interview flow
-- Moss RAG over scraped business website
+- AgentMail onboarding interview flow ✅ built
+- Browser Use scraping during onboarding ✅ built
+- Moss RAG over scraped business website (currently runs against SQLite `profile_text` — flat string, works for demo, degrades at scale)
 - Sponge per-session micropayments
 - Stripe subscription link in welcome email
-- Browser Use scraping during onboarding
+- Supermemory (swap in as vector store backing Moss RAG when profiles get large or multi-tenant scale matters)
