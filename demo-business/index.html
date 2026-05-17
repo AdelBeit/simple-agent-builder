@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peak Flow Plumbing | Austin's Most Trusted Plumber Since 1998</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; line-height: 1.6; }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    header {
+      background: #0a1f44;
+      color: #fff;
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    }
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 68px;
+      gap: 16px;
+    }
+    .logo { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; white-space: nowrap; }
+    .logo span { color: #e8321c; }
+    nav { display: flex; gap: 24px; align-items: center; }
+    nav a { color: #d0ddf5; text-decoration: none; font-size: .9rem; font-weight: 500; transition: color .2s; }
+    nav a:hover { color: #fff; }
+    .phone-badge {
+      background: #e8321c;
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background .2s;
+    }
+    .phone-badge:hover { background: #c4270f; }
+
+    /* ── Hero ────────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #0a1f44 0%, #1a3a6e 60%, #0d2d5c 100%);
+      color: #fff;
+      padding: 96px 24px 80px;
+      text-align: center;
+    }
+    .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 900; line-height: 1.15; margin-bottom: 20px; }
+    .hero h1 em { color: #f5b800; font-style: normal; }
+    .hero p { font-size: 1.2rem; color: #b8cef0; max-width: 560px; margin: 0 auto 36px; }
+    .hero-ctas { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: #e8321c; color: #fff; padding: 14px 32px;
+      border-radius: 4px; font-size: 1rem; font-weight: 700;
+      text-decoration: none; transition: background .2s;
+    }
+    .btn-primary:hover { background: #c4270f; }
+    .btn-outline {
+      border: 2px solid #fff; color: #fff; padding: 13px 32px;
+      border-radius: 4px; font-size: 1rem; font-weight: 700;
+      text-decoration: none; transition: all .2s;
+    }
+    .btn-outline:hover { background: rgba(255,255,255,.1); }
+    .hero-trust { margin-top: 48px; color: #8aaed8; font-size: .9rem; }
+    .hero-trust strong { color: #f5b800; }
+
+    /* ── Sections shared ─────────────────────────────────────── */
+    section { padding: 72px 24px; }
+    .section-inner { max-width: 1100px; margin: 0 auto; }
+    .section-title { text-align: center; margin-bottom: 48px; }
+    .section-title h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; color: #0a1f44; margin-bottom: 10px; }
+    .section-title p { color: #555; font-size: 1.05rem; }
+
+    /* ── Services ────────────────────────────────────────────── */
+    .services { background: #f4f7fc; }
+    .services-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+    .service-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 28px 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .service-card:hover { transform: translateY(-4px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+    .service-icon { font-size: 2rem; margin-bottom: 12px; }
+    .service-card h3 { color: #0a1f44; font-size: 1.1rem; margin-bottom: 8px; }
+    .service-card p { color: #555; font-size: .9rem; }
+
+    /* ── Why Choose Us ───────────────────────────────────────── */
+    .why-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 32px; }
+    .why-item { text-align: center; }
+    .why-icon {
+      width: 72px; height: 72px;
+      background: #0a1f44;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem;
+      margin: 0 auto 16px;
+    }
+    .why-item h3 { font-size: 1.1rem; color: #0a1f44; margin-bottom: 8px; }
+    .why-item p { color: #555; font-size: .92rem; }
+
+    /* ── Testimonials ────────────────────────────────────────── */
+    .testimonials { background: #f4f7fc; }
+    .testi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+    .testi-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 28px 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+    }
+    .stars { color: #f5b800; font-size: 1.1rem; margin-bottom: 10px; }
+    .testi-card p { color: #444; font-size: .95rem; font-style: italic; margin-bottom: 16px; }
+    .testi-author { font-weight: 700; color: #0a1f44; font-size: .9rem; }
+
+    /* ── Contact ─────────────────────────────────────────────── */
+    .contact { background: #fff; }
+    .contact-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+    .contact-info h3 { font-size: 1.3rem; color: #0a1f44; margin-bottom: 20px; }
+    .contact-detail { display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+    .contact-detail .icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
+    .contact-detail p { color: #333; font-size: .95rem; }
+    .contact-detail a { color: #e8321c; text-decoration: none; }
+    .emergency-box {
+      background: #fff5f4;
+      border-left: 4px solid #e8321c;
+      padding: 16px 20px;
+      border-radius: 0 6px 6px 0;
+      margin-top: 28px;
+    }
+    .emergency-box strong { color: #c4270f; display: block; margin-bottom: 4px; }
+
+    /* Form */
+    form { display: flex; flex-direction: column; gap: 14px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    label { font-size: .85rem; font-weight: 600; color: #333; display: block; margin-bottom: 4px; }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #d0d8e8;
+      border-radius: 4px;
+      font-size: .95rem;
+      font-family: inherit;
+      transition: border-color .2s;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #0a1f44; }
+    textarea { resize: vertical; min-height: 100px; }
+    .submit-btn {
+      background: #e8321c;
+      color: #fff;
+      padding: 14px;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .submit-btn:hover { background: #c4270f; }
+    .form-success {
+      display: none;
+      background: #edfaf1;
+      border: 1.5px solid #27ae60;
+      color: #1a7a40;
+      padding: 14px 18px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────── */
+    footer {
+      background: #0a1f44;
+      color: #8aaed8;
+      padding: 40px 24px;
+      text-align: center;
+    }
+    footer .footer-inner { max-width: 800px; margin: 0 auto; }
+    footer .footer-name { color: #fff; font-size: 1.2rem; font-weight: 800; margin-bottom: 10px; }
+    footer p { font-size: .88rem; margin-bottom: 4px; }
+    footer a { color: #8aaed8; text-decoration: none; }
+    footer .copyright { margin-top: 20px; font-size: .8rem; color: #4a6a9a; }
+
+    @media (max-width: 720px) {
+      nav { display: none; }
+      .contact-wrap { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────────── -->
+<header>
+  <div class="header-inner">
+    <div class="logo">Peak<span>Flow</span> Plumbing</div>
+    <nav>
+      <a href="#services">Services</a>
+      <a href="#why-us">Why Us</a>
+      <a href="#testimonials">Reviews</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <a class="phone-badge" href="tel:+15125550187">(512) 555-0187</a>
+  </div>
+</header>
+
+<!-- ── HERO ───────────────────────────────────────────────────── -->
+<section class="hero">
+  <h1>Austin's <em>#1 Trusted</em><br>Plumber Since 1998</h1>
+  <p>Same-day service. Flat-rate pricing. No surprises — ever.</p>
+  <div class="hero-ctas">
+    <a class="btn-primary" href="tel:+15125550187">📞 Call Now: (512) 555-0187</a>
+    <a class="btn-outline" href="#contact">Get a Free Quote</a>
+  </div>
+  <p class="hero-trust">
+    <strong>★ 4.9/5</strong> from 340+ Austin homeowners &nbsp;|&nbsp;
+    Licensed &amp; Insured &nbsp;|&nbsp; Same-Day Availability
+  </p>
+</section>
+
+<!-- ── SERVICES ───────────────────────────────────────────────── -->
+<section class="services" id="services">
+  <div class="section-inner">
+    <div class="section-title">
+      <h2>Our Plumbing Services</h2>
+      <p>From clogged drains to full pipe replacements, we handle it all — fast.</p>
+    </div>
+    <div class="services-grid">
+      <div class="service-card">
+        <div class="service-icon">🚿</div>
+        <h3>Drain Cleaning</h3>
+        <p>Kitchen, bathroom, and main-line clogs cleared same day. Hydro-jetting available for tough blockages.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🔧</div>
+        <h3>Leak Repair</h3>
+        <p>From dripping faucets to hidden slab leaks — we diagnose and fix leaks before they become disasters.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🌡️</div>
+        <h3>Water Heater Install &amp; Repair</h3>
+        <p>Traditional tank and tankless water heaters. Same-day replacement with a 5-year parts warranty.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🪛</div>
+        <h3>Pipe Replacement</h3>
+        <p>Corroded, cracked, or undersized pipes replaced with modern PEX or copper — minimal disruption.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🚨</div>
+        <h3>Emergency Plumbing</h3>
+        <p>24/7 emergency dispatch. Burst pipes, sewage backups, flooding — we're there in under 60 minutes.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🔍</div>
+        <h3>Sewer Line Inspection</h3>
+        <p>HD camera inspection of your sewer line. Know what's underground before buying or selling a home.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── WHY CHOOSE US ───────────────────────────────────────────── -->
+<section id="why-us">
+  <div class="section-inner">
+    <div class="section-title">
+      <h2>Why Austin Homeowners Choose Us</h2>
+      <p>We've been fixing Austin's plumbing since 1998. Here's what sets us apart.</p>
+    </div>
+    <div class="why-grid">
+      <div class="why-item">
+        <div class="why-icon">🏅</div>
+        <h3>Licensed &amp; Insured</h3>
+        <p>All technicians are Master Plumber licensed in Texas, fully insured, and background-checked. Your home is safe with us.</p>
+      </div>
+      <div class="why-item">
+        <div class="why-icon">💲</div>
+        <h3>Flat-Rate Pricing</h3>
+        <p>You get a firm price before we start — no hourly billing surprises. What we quote is what you pay.</p>
+      </div>
+      <div class="why-item">
+        <div class="why-icon">⚡</div>
+        <h3>24/7 Emergency Service</h3>
+        <p>Plumbing emergencies don't keep business hours. Neither do we. On-call techs available every night and weekend.</p>
+      </div>
+      <div class="why-item">
+        <div class="why-icon">🔁</div>
+        <h3>Satisfaction Guaranteed</h3>
+        <p>Every job is backed by our 100% satisfaction guarantee. If it's not right, we come back — no charge.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TESTIMONIALS ────────────────────────────────────────────── -->
+<section class="testimonials" id="testimonials">
+  <div class="section-inner">
+    <div class="section-title">
+      <h2>What Austin Homeowners Are Saying</h2>
+      <p>Over 340 five-star reviews on Google and Yelp.</p>
+    </div>
+    <div class="testi-grid">
+      <div class="testi-card">
+        <div class="stars">★★★★★</div>
+        <p>"Called at 7am with a burst pipe under my kitchen sink. Tech was at my door by 8:15. Fixed in under an hour. Quoted me upfront — no hidden fees. Absolute lifesavers."</p>
+        <div class="testi-author">— Sandra K., South Austin</div>
+      </div>
+      <div class="testi-card">
+        <div class="stars">★★★★★</div>
+        <p>"I've used three plumbers in Austin over the years. Peak Flow is the only one that actually shows up when they say they will and doesn't try to upsell me on things I don't need. They've earned a customer for life."</p>
+        <div class="testi-author">— Marcus T., Cedar Park</div>
+      </div>
+      <div class="testi-card">
+        <div class="stars">★★★★★</div>
+        <p>"Bought a house with a mystery drain problem every other plumber gave up on. Peak Flow ran a camera inspection and found a root intrusion 40 feet in. Had it fixed the next morning. Incredible work."</p>
+        <div class="testi-author">— Priya N., Mueller District</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CONTACT ─────────────────────────────────────────────────── -->
+<section class="contact" id="contact">
+  <div class="section-inner">
+    <div class="section-title">
+      <h2>Request Service or Get a Free Quote</h2>
+      <p>Fill out the form and we'll call you back within 15 minutes during business hours.</p>
+    </div>
+    <div class="contact-wrap">
+      <div class="contact-info">
+        <h3>Contact Information</h3>
+        <div class="contact-detail">
+          <div class="icon">📍</div>
+          <p>4821 Burnet Rd<br>Austin, TX 78756</p>
+        </div>
+        <div class="contact-detail">
+          <div class="icon">📞</div>
+          <p><a href="tel:+15125550187">(512) 555-0187</a></p>
+        </div>
+        <div class="contact-detail">
+          <div class="icon">✉️</div>
+          <p><a href="mailto:service@peakflowplumbing.com">service@peakflowplumbing.com</a></p>
+        </div>
+        <div class="contact-detail">
+          <div class="icon">🕐</div>
+          <p>
+            Mon–Fri: 7am – 7pm<br>
+            Saturday: 8am – 5pm<br>
+            Sunday: Emergency only
+          </p>
+        </div>
+        <div class="emergency-box">
+          <strong>🚨 24/7 Emergency Line</strong>
+          For burst pipes, flooding, or sewage backups outside business hours — call the same number: <a href="tel:+15125550187">(512) 555-0187</a>
+        </div>
+      </div>
+
+      <div>
+        <form id="contactForm">
+          <div class="form-row">
+            <div>
+              <label for="name">Full Name *</label>
+              <input id="name" name="name" type="text" placeholder="Jane Smith" required>
+            </div>
+            <div>
+              <label for="phone">Phone Number *</label>
+              <input id="phone" name="phone" type="tel" placeholder="(512) 555-0000" required>
+            </div>
+          </div>
+          <div>
+            <label for="email">Email Address</label>
+            <input id="email" name="email" type="email" placeholder="jane@example.com">
+          </div>
+          <div>
+            <label for="service">Service Needed *</label>
+            <select id="service" name="service" required>
+              <option value="" disabled selected>Select a service…</option>
+              <option value="Drain Cleaning">Drain Cleaning</option>
+              <option value="Leak Repair">Leak Repair</option>
+              <option value="Water Heater">Water Heater Install / Repair</option>
+              <option value="Pipe Replacement">Pipe Replacement</option>
+              <option value="Emergency Plumbing">Emergency Plumbing</option>
+              <option value="Sewer Line Inspection">Sewer Line Inspection</option>
+              <option value="Other">Other / Not Sure</option>
+            </select>
+          </div>
+          <div>
+            <label for="message">Describe the Issue</label>
+            <textarea id="message" name="message" placeholder="e.g. Kitchen drain is backing up, noticed water under the sink…"></textarea>
+          </div>
+          <button class="submit-btn" type="submit">Send Request →</button>
+          <div class="form-success" id="formSuccess">
+            ✅ Got it! We'll call you back within 15 minutes. For emergencies, please call <strong>(512) 555-0187</strong> directly.
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ──────────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-name">PeakFlow Plumbing</div>
+    <p>4821 Burnet Rd, Austin, TX 78756</p>
+    <p><a href="tel:+15125550187">(512) 555-0187</a> &nbsp;|&nbsp; <a href="mailto:service@peakflowplumbing.com">service@peakflowplumbing.com</a></p>
+    <p>Mon–Fri 7am–7pm &nbsp;|&nbsp; Sat 8am–5pm &nbsp;|&nbsp; 24/7 Emergency</p>
+    <p class="copyright">© 2026 Peak Flow Plumbing LLC. All rights reserved. Texas Plumbing License #M-42891.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('contactForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target));
+    try {
+      const res = await fetch('/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        document.getElementById('formSuccess').style.display = 'block';
+        e.target.reset();
+        document.getElementById('formSuccess').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    } catch {
+      alert('Something went wrong. Please call us directly at (512) 555-0187.');
+    }
+  });
+</script>
+
+</body>
+</html>
