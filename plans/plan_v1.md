@@ -63,19 +63,22 @@ Two options:
 
 ---
 
-## Current State Before These Changes
+## Current State
 
 | What | Status |
 |---|---|
-| Onboarding interview (Gemini + scrape) | ✅ built |
-| SQLite save on onboarding complete | ✅ built |
-| AgentMail inbox + config email | ✅ built |
-| Lead capture webhook | ✅ built |
-| Browser Use form submission | ✅ built |
+| Onboarding interview (Gemini + scrape) | ✅ working |
+| SQLite save on onboarding complete | ✅ working |
+| AgentMail inbox + config email | ✅ working |
+| AgentMail lead notification email | ✅ working |
+| AgentMail reply webhook (owner updates profile) | ✅ working |
+| Lead capture webhook | ✅ working — real calls tested |
+| Browser Use form submission | ✅ working — confirmed in live call |
+| Caller ID pre-fill in conversation | ✅ working |
+| Natural TTS pacing via punctuation hints | ✅ working |
 | AgentPhone agent provisioning per business | ❌ not built |
 | Transfer offer after onboarding | ❌ not built |
 | Greeter agent | ❌ not built |
-| End-to-end call tested | ❌ AgentPhone under repair |
 
 ---
 
