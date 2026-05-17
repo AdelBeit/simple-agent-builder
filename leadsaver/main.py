@@ -91,30 +91,66 @@ async def handle_call(request: Request, background_tasks: BackgroundTasks):
 @app.post("/webhook/onboarding")
 async def handle_onboarding(request: Request, background_tasks: BackgroundTasks):
     payload = await request.json()
-    session_id = payload.get("callId") or payload.get("id", "unknown")
+    data = payload.get("data", payload)
     event = payload.get("event") or payload.get("type", "")
+    session_id = data.get("callId") or payload.get("callId") or payload.get("id", "unknown")
 
-    if event in ("call.started", "call_started", "new_call", ""):
-        active_onboarding[session_id] = {"history": [], "transcript": ""}
+    if event == "agent.call_ended":
+        active_onboarding.pop(session_id, None)
+        return JSONResponse({"status": "ok"})
+
+    if session_id not in active_onboarding:
+        active_onboarding[session_id] = {"history": [], "transcript": "", "awaiting_transfer": False, "transfer_number": ""}
         return JSONResponse({"text": ONBOARDING_BEGIN, "hangup": False})
 
-    caller_text = payload.get("text") or payload.get("transcript") or payload.get("message", "")
+    # Handle transfer confirmation turn
+    state = active_onboarding[session_id]
+    if state.get("awaiting_transfer"):
+        caller_text = data.get("transcript") or payload.get("text", "")
+        yes_signals = ["yes", "yeah", "sure", "yep", "go ahead", "connect", "transfer", "sounds good"]
+        if any(s in caller_text.lower() for s in yes_signals):
+            active_onboarding.pop(session_id, None)
+            return JSONResponse({"action": "transfer", "transferNumber": state["transfer_number"]})
+        else:
+            active_onboarding.pop(session_id, None)
+            return JSONResponse({"text": "No problem! You'll get a summary email shortly, and your receptionist is ready to take calls. Have a great day!", "hangup": True})
+
+    caller_text = data.get("transcript") or payload.get("text") or payload.get("transcript") or payload.get("message", "")
     if not caller_text:
         return JSONResponse({"text": "", "hangup": False})
 
-    state = active_onboarding.setdefault(session_id, {"history": [], "transcript": ""})
     state["transcript"] += f"\nOwner: {caller_text}"
-
     reply, business_data = get_onboarding_reply(state["history"], caller_text)
-
     state["history"].append({"role": "user", "parts": [caller_text]})
     state["history"].append({"role": "model", "parts": [reply]})
     state["transcript"] += f"\nAgent: {reply}"
 
     if business_data:
+        # Provision agent synchronously so we have the number for the transfer offer
+        agent_number = ""
+        try:
+            from agentphone_provision import provision_business_agent
+            provisioned = provision_business_agent(business_data)
+            agent_number = provisioned["phone_number"]
+            business_data["agentphone_agent_id"] = provisioned["agent_id"]
+            business_data["agentphone_number"] = agent_number
+        except Exception as e:
+            print(f"[ONBOARDING] Provisioning failed: {e}")
+
         background_tasks.add_task(complete_onboarding, session_id, business_data)
-        active_onboarding.pop(session_id, None)
-        return JSONResponse({"text": reply, "hangup": True})
+
+        if agent_number:
+            fmt = f"{agent_number[-10:-7]}-{agent_number[-7:-4]}-{agent_number[-4:]}" if len(agent_number) >= 10 else agent_number
+            transfer_msg = (
+                f"You're all set! Your receptionist is live at {fmt}. "
+                "Want me to connect you now so you can hear how it sounds?"
+            )
+            state["awaiting_transfer"] = True
+            state["transfer_number"] = agent_number
+            return JSONResponse({"text": transfer_msg, "hangup": False})
+        else:
+            active_onboarding.pop(session_id, None)
+            return JSONResponse({"text": reply, "hangup": True})
 
     return JSONResponse({"text": reply, "hangup": False})
 
@@ -257,11 +293,10 @@ async def complete_onboarding(session_id: str, data: dict):
         except Exception as e:
             print(f"[ONBOARDING] Config email failed (non-fatal): {e}")
 
-    # 5. Provision a dedicated AgentPhone agent + number for this business
-    try:
-        provisioned = provision_business_agent(business)
-        agent_id = provisioned["agent_id"]
-        agent_number = provisioned["phone_number"]
+    # 5. Persist agent provisioning info (already provisioned in webhook if via phone)
+    agent_id = data.get("agentphone_agent_id", "")
+    agent_number = data.get("agentphone_number", "")
+    if agent_id:
         conn = get_db()
         conn.execute(
             "UPDATE businesses SET agentphone_agent_id=?, agentphone_number=? WHERE id=?",
@@ -269,10 +304,23 @@ async def complete_onboarding(session_id: str, data: dict):
         )
         conn.commit()
         conn.close()
-        print(f"[ONBOARDING] Agent provisioned: {agent_id} / {agent_number}")
-    except Exception as e:
-        print(f"[ONBOARDING] Agent provisioning failed (non-fatal): {e}")
-        agent_number = ""
+        print(f"[ONBOARDING] Agent saved: {agent_id} / {agent_number}")
+    else:
+        # HTTP chat path — provision here
+        try:
+            provisioned = provision_business_agent(get_business(biz_id))
+            agent_id = provisioned["agent_id"]
+            agent_number = provisioned["phone_number"]
+            conn = get_db()
+            conn.execute(
+                "UPDATE businesses SET agentphone_agent_id=?, agentphone_number=? WHERE id=?",
+                (agent_id, agent_number, biz_id)
+            )
+            conn.commit()
+            conn.close()
+            print(f"[ONBOARDING] Agent provisioned: {agent_id} / {agent_number}")
+        except Exception as e:
+            print(f"[ONBOARDING] Agent provisioning failed (non-fatal): {e}")
 
     print(f"[ONBOARDING] Complete for business #{biz_id}")
 
