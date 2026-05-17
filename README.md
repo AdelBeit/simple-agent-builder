@@ -5,132 +5,138 @@ Built at a hackathon. Target customers: plumbers, roofers, contractors.
 
 ---
 
-## Status
+## Flow Diagrams
 
-| Component | Status |
-|---|---|
-| Peak Flow Plumbing demo site | ✅ Built |
-| FastAPI skeleton (all 5 files) | ✅ Built |
-| AgentPhone agent provisioned | ✅ Live — `+1 (231) 867-0908` |
-| Gemini 2.5 Flash conversation logic | ✅ Built |
-| Browser Use form submission | ✅ Built |
-| SQLite lead storage | ✅ Built |
-| Python deps + Playwright installed | ✅ Done |
-| ngrok persistent domain configured | ✅ `syenitic-lila-uneffusively.ngrok-free.dev` |
-| End-to-end call test | ⬜ Not yet run |
+### Current MVP Flow (What's Built)
+
+```
+┌─────────────┐
+│  Customer   │  Calls business phone number
+│   Caller    │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────────────┐
+│          AgentPhone (Receptionist Agent)                │
+│               (webhook mode)                             │
+└──────┬──────────────────────────────────────────────────┘
+       │ POST /webhook/call
+       │ {"event": "call.started", "callId": "...", "text": "..."}
+       ▼
+┌─────────────────────────────────────────────────────────┐
+│              FastAPI Backend (port 8000)                │
+│              via ngrok tunnel                            │
+├─────────────────────────────────────────────────────────┤
+│  1. Receive webhook → extract caller utterance          │
+│  2. Build conversation history for this call            │
+│  3. Send to Gemini 2.5 Flash with system prompt         │
+│  4. Get AI response                                      │
+│  5. Return {"text": "...", "hangup": false}             │
+└──────┬──────────────────────────────────────────────────┘
+       │
+       ├─ (if hangup) ──────────────────────────────┐
+       │                                             │
+       │                                             ▼
+       │                              ┌──────────────────────────┐
+       │                              │  Background Processing   │
+       │                              ├──────────────────────────┤
+       │                              │ 1. Extract lead info     │
+       │                              │    from transcript       │
+       │                              │ 2. Save to SQLite        │
+       │                              │ 3. Trigger Browser Use   │
+       │                              └──────┬───────────────────┘
+       │                                     │
+       │                                     ▼
+       │                      ┌──────────────────────────────────┐
+       │                      │    Browser Use (Playwright)      │
+       │                      ├──────────────────────────────────┤
+       │                      │ 1. Launch Chromium               │
+       │                      │ 2. Navigate to localhost:3000    │
+       │                      │ 3. Fill contact form fields      │
+       │                      │ 4. Click submit                  │
+       │                      └──────┬───────────────────────────┘
+       │                             │
+       │                             ▼
+       │              ┌─────────────────────────────────────────┐
+       │              │   Express Server (port 3000)            │
+       │              │   Peak Flow Plumbing Demo Site          │
+       │              ├─────────────────────────────────────────┤
+       │              │ POST /contact                           │
+       │              │ → Append to submissions.csv             │
+       │              └─────────────────────────────────────────┘
+       │
+       └──► (continues conversation until caller hangs up)
+```
+
+**Result:** Business owner opens `submissions.csv` and sees the captured lead.
 
 ---
 
-## How It Works
+### Planned Full E2E Flow (Post-MVP Vision)
 
-**Live flow:**
-1. Customer calls `+1 (231) 867-0908` (Peak Flow Plumbing's AgentPhone number)
-2. AgentPhone forwards the call webhook to LeadSaver
-3. Gemini 2.5 Flash answers as the business, collects name / phone / service / urgency
-4. Browser Use automatically fills and submits the contact form at `localhost:3000`
-5. Owner sees the lead appear in `submissions.csv` in real time
+```
+┌─────────────────┐
+│ Business Owner  │  Calls LeadSaver main number
+└────────┬────────┘
+         │
+         ▼
+┌────────────────────────────────────────────────────────┐
+│           [1] Greeter Agent (hosted mode)              │
+│  "Thanks for calling LeadSaver, the AI receptionist    │
+│   service for small businesses. Want to sign up?"      │
+└────────┬───────────────────────────────────────────────┘
+         │
+         │ (owner says yes)
+         │
+         ▼ TRANSFER
+┌────────────────────────────────────────────────────────┐
+│       [2] Onboarding Agent (webhook mode)              │
+│  POST /webhook/onboarding                              │
+├────────────────────────────────────────────────────────┤
+│ 1. "What's your business name and website?"            │
+│ 2. Gemini conducts interview                           │
+│ 3. Browser Use scrapes their website                   │
+│ 4. Save business profile to SQLite                     │
+│ 5. Call AgentPhone API:                                │
+│    POST /v1/agents → create new receptionist agent     │
+│    POST /v1/numbers → provision dedicated number       │
+│ 6. Set new agent webhook to /webhook/call              │
+│ 7. Send AgentMail config summary email                 │
+└────────┬───────────────────────────────────────────────┘
+         │
+         │ "Your receptionist is ready!"
+         │ "Your dedicated number is +1 (XXX) XXX-XXXX."
+         │ "Want me to transfer you there for a demo?"
+         │
+         ▼ TRANSFER (if yes)
+┌────────────────────────────────────────────────────────┐
+│    [3] Custom Receptionist Agent                       │
+│    (newly provisioned, webhook → /webhook/call)        │
+├────────────────────────────────────────────────────────┤
+│ • Answers as the business                              │
+│ • Uses Moss RAG over scraped profile                   │
+│ • Collects fake lead info from owner (demo)            │
+│ • Browser Use submits to their contact form            │
+│ • AgentMail sends lead notification                    │
+└────────────────────────────────────────────────────────┘
+         │
+         ▼
+   Owner experiences the full customer journey on one call
+```
 
-**Setup flow (post-MVP):**
-- Business owner calls an AgentPhone number → Gemini runs onboarding interview
-- Browser Use scrapes their website → Supermemory stores their business profile
-- AgentMail sends a config summary → owner replies to tweak it
-
-**Billing:** $49/mo Stripe subscription sent in the welcome email.
+**Result:** Owner gets a working AI receptionist + dedicated phone number in under 5 minutes.
 
 ---
 
-## Architecture
-
-Two independent servers:
-
-| Server | Stack | Port | Purpose |
-|---|---|---|---|
-| `demo-business/` | Node/Express | 3000 | Demo plumber site — Browser Use submits forms here |
-| `leadsaver/` | Python/FastAPI | 8000 | LeadSaver backend — handles webhooks, runs Gemini + Browser Use |
-
-Only the FastAPI server needs ngrok (for AgentPhone to reach it). Browser Use runs locally and hits `http://localhost:3000` directly.
-
----
 
 ## Tech Stack
 
-| Layer | Tool |
-|---|---|
-| Language | Python 3.14 |
-| Framework | FastAPI + uvicorn |
-| AI | Gemini 2.5 Flash (`google-genai` SDK) |
-| Voice | AgentPhone (webhook mode) |
-| Browser automation | Browser Use + Playwright/Chromium |
-| Memory | Hardcoded dict → Supermemory (post-MVP) |
-| Email | AgentMail (post-MVP) |
-| RAG | Moss (post-MVP) |
-| Payments | Stripe link → Sponge micropayments (post-MVP) |
-| DB | SQLite (stdlib) |
-| Tunnel | ngrok (persistent domain) |
+**Core:** Python 3.14, FastAPI, Gemini 2.5 Flash, AgentPhone, Browser Use (Playwright), SQLite
+
+**Future:** AgentMail, Moss RAG, Supermemory, Stripe/Sponge billing
 
 ---
 
-## Project Structure
-
-```
-demo-business/              # Peak Flow Plumbing demo site
-├── index.html              # Single-page site with contact form
-├── server.js               # Express — serves static + POST /contact → submissions.csv
-└── submissions.csv         # Lead submissions land here
-
-leadsaver/                  # LeadSaver FastAPI backend
-├── main.py                 # App entry — 3 webhooks + GET /leads + background orchestration
-├── config.py               # Env vars + hardcoded Peak Flow Plumbing profile
-├── agent.py                # Gemini 2.5 Flash conversation logic
-├── browser_submit.py       # Browser Use → fills and submits contact form
-├── models.py               # SQLite init + save_lead / mark_form_submitted / get_all_leads
-├── agent.md                # Receptionist persona spec (system prompt source of truth)
-├── requirements.txt        # Python deps
-└── .venv/                  # Virtual environment (gitignored)
-
-plans/                      # Architecture notes and build log
-```
-
----
-
-## AgentPhone Agent
-
-| Field | Value |
-|---|---|
-| Agent ID | `cmpa92in80d4djz00jx56l5z2` |
-| Phone number | `+1 (231) 867-0908` |
-| Voice mode | `webhook` — calls your `/webhook/call` |
-| Begin message | "Hi, thanks for calling Peak Flow Plumbing! ..." |
-
----
-
-## Webhooks
-
-All async — return immediately, process in background:
-
-```
-POST /webhook/call          ← AgentPhone: inbound call turn
-POST /webhook/email-reply   ← AgentMail: owner config reply (post-MVP)
-POST /webhook/browser-done  ← Browser Use: form submission callback (post-MVP)
-GET  /leads                 ← View all collected leads as JSON
-```
-
----
-
-## Data Model
-
-```python
-businesses:
-  id, name, phone, website_url, contact_form_url,
-  profile_text, agentphone_number, created_at
-
-leads:
-  id, business_id, caller_phone, caller_name,
-  issue_description, call_transcript,
-  form_submitted (bool), created_at
-```
-
----
 
 ## Running Locally
 
@@ -146,7 +152,7 @@ playwright install chromium
 uvicorn main:app --reload --port 8000
 
 # Terminal 3 — ngrok tunnel
-yarn ngrok         # https://syenitic-lila-uneffusively.ngrok-free.dev → localhost:8000
+yarn ngrok         # Exposes localhost:8000 to AgentPhone webhooks
 
 # Terminal 4 — register webhook with AgentPhone (run once after ngrok is up)
 yarn agentphone
@@ -154,35 +160,15 @@ yarn agentphone
 
 `.env` keys required:
 ```
-AGENT_PHONE_KEY=
-AGENTPHONE_AGENT_ID=
-AGENTPHONE_NUMBER=
-GEMINI_API_KEY=
-NGROK_WEBSITE=
+AGENT_PHONE_KEY=<your_agentphone_api_key>
+AGENTPHONE_AGENT_ID=<your_agent_id>
+AGENTPHONE_NUMBER=<your_phone_number>
+GEMINI_API_KEY=<your_gemini_api_key>
+NGROK_WEBSITE=<your_ngrok_domain>
 ```
 
 ---
 
-## Demo Checklist
+## Testing
 
-- [ ] `yarn demo` → Peak Flow Plumbing loads at `localhost:3000`
-- [ ] Contact form submits to `submissions.csv`
-- [ ] `uvicorn main:app` starts at `localhost:8000`
-- [ ] `yarn ngrok` tunnel is up
-- [ ] `yarn agentphone` → "Webhook updated."
-- [ ] Call `+1 (231) 867-0908` — AI answers as Peak Flow Plumbing within 2s
-- [ ] AI collects name, phone, service type in under 3 turns
-- [ ] Browser Use fills and submits the contact form
-- [ ] New row appears in `submissions.csv`
-- [ ] `GET /leads` returns collected leads as JSON
-
----
-
-## Post-MVP Backlog
-
-- AgentMail onboarding interview flow ✅ built
-- Browser Use scraping during onboarding ✅ built
-- Moss RAG over scraped business website (currently runs against SQLite `profile_text` — flat string, works for demo, degrades at scale)
-- Stripe subscription link in welcome email
-- Supermemory (swap in as vector store backing Moss RAG when profiles get large or multi-tenant scale matters)
-- Sponge per-session micropayments
+Call the provisioned number → Agent answers → Collects lead info → Form submitted to `demo-business/submissions.csv`
