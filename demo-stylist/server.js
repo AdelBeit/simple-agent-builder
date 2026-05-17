@@ -23,4 +23,4 @@ app.post('/contact', (req, res) => {
   res.json({ ok: true });
 });
 
-app.listen(3000, () => console.log('Server running at http://localhost:3000'));
+app.listen(3101, () => console.log('Goldfinch Barbershop → http://localhost:3101'));

@@ -14,7 +14,7 @@ app = FastAPI(title="LeadSaver")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3001", "http://localhost:3000"],
+    allow_origins=["http://localhost:3100", "http://localhost:3101", "http://localhost:3102"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
