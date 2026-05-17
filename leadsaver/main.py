@@ -7,6 +7,7 @@ from models import (
 from agent import get_reply, extract_lead_info, BEGIN_MESSAGE
 from onboarding import get_onboarding_reply, BEGIN_MESSAGE as ONBOARDING_BEGIN
 from browser_submit import submit_lead_to_form, scrape_business_website
+from agentmail import create_inbox, register_reply_webhook, send_config_summary, send_lead_notification
 
 app = FastAPI(title="LeadSaver")
 
@@ -124,9 +125,10 @@ async def onboarding_message(request: Request, background_tasks: BackgroundTasks
 # Webhook: AgentMail reply — owner tweaks their config
 # ---------------------------------------------------------------------------
 @app.post("/webhook/email-reply")
-async def handle_email_reply(request: Request):
+async def handle_email_reply(request: Request, background_tasks: BackgroundTasks):
     payload = await request.json()
     print(f"[EMAIL] Reply received: {payload}")
+    background_tasks.add_task(process_email_reply, payload)
     return {"status": "accepted"}
 
 
@@ -164,11 +166,18 @@ def list_businesses():
 
 
 # ---------------------------------------------------------------------------
-# Background: complete onboarding — scrape website + save business
+# Background: complete onboarding — scrape website + save + email summary
 # ---------------------------------------------------------------------------
 async def complete_onboarding(session_id: str, data: dict):
     print(f"[ONBOARDING {session_id}] Saving business: {data.get('name')}")
 
+    # 1. Create AgentMail inbox for this business
+    inbox = create_inbox(data.get("name", "business"))
+    inbox_id = inbox["id"]
+    inbox_email = inbox["email"]
+    print(f"[ONBOARDING] Inbox created: {inbox_email}")
+
+    # 2. Save business to DB
     biz_id = save_business(
         name=data.get("name", ""),
         phone=data.get("phone", ""),
@@ -177,17 +186,79 @@ async def complete_onboarding(session_id: str, data: dict):
         hours=data.get("hours", ""),
         services=data.get("services", []),
         owner_email=data.get("owner_email", ""),
+        inbox_id=inbox_id,
+        inbox_email=inbox_email,
     )
     print(f"[ONBOARDING] Business saved as ID #{biz_id}")
 
+    # 3. Register webhook so owner replies come back to us
+    register_reply_webhook(inbox_id)
+
+    # 4. Scrape website
     if data.get("website_url"):
         print(f"[ONBOARDING] Scraping {data['website_url']} ...")
         profile_text = await scrape_business_website(data["website_url"])
         if profile_text:
             update_business_profile(biz_id, profile_text)
-            print(f"[ONBOARDING] Profile enriched from website ({len(profile_text)} chars)")
+            print(f"[ONBOARDING] Profile enriched ({len(profile_text)} chars)")
 
-    print(f"[ONBOARDING] Done for business #{biz_id}")
+    # 5. Send config summary email to owner
+    business = get_business(biz_id)
+    if data.get("owner_email") and business:
+        ok = send_config_summary(inbox_id, data["owner_email"], business)
+        print(f"[ONBOARDING] Config email {'sent' if ok else 'FAILED'} → {data['owner_email']}")
+
+    print(f"[ONBOARDING] Complete for business #{biz_id}")
+
+
+# ---------------------------------------------------------------------------
+# Background: process owner email reply — update business profile
+# ---------------------------------------------------------------------------
+async def process_email_reply(payload: dict):
+    # AgentMail wraps the message body — try common field names
+    body = (payload.get("text") or payload.get("body") or
+            payload.get("message", {}).get("text", ""))
+    inbox_id = (payload.get("inboxId") or payload.get("inbox_id") or
+                payload.get("message", {}).get("inboxId", ""))
+
+    if not body or not inbox_id:
+        print(f"[EMAIL] Could not parse reply payload: {payload}")
+        return
+
+    # Find the business by inbox ID
+    conn = __import__("models").get_db()
+    row = conn.execute("SELECT * FROM businesses WHERE inbox_id = ?", (inbox_id,)).fetchone()
+    conn.close()
+    if not row:
+        print(f"[EMAIL] No business found for inbox {inbox_id}")
+        return
+
+    business = dict(row)
+    print(f"[EMAIL] Owner reply for {business['name']}: {body[:100]}")
+
+    # Use Gemini to extract what the owner wants to change
+    from agent import client as gemini_client
+    from config import GEMINI_MODEL
+    prompt = f"""The owner of {business['name']} replied to their LeadSaver config email with:
+
+"{body}"
+
+Extract any corrections or updates as JSON with the same fields as the business profile:
+name, phone, website_url, contact_form_url, hours, services (list).
+Only include fields they actually mentioned changing. Return valid JSON only, no markdown."""
+
+    response = gemini_client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+    try:
+        import json
+        updates = json.loads(response.text.strip())
+        for field, value in updates.items():
+            conn = __import__("models").get_db()
+            conn.execute(f"UPDATE businesses SET {field} = ? WHERE id = ?", (str(value), business["id"]))
+            conn.commit()
+            conn.close()
+        print(f"[EMAIL] Updated fields for business #{business['id']}: {list(updates.keys())}")
+    except Exception as e:
+        print(f"[EMAIL] Could not parse updates: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -220,3 +291,11 @@ async def process_completed_call(call_id: str, transcript: str, business: dict |
         print(f"[LEAD] Form submitted for lead #{lead_id}")
     else:
         print(f"[LEAD] Form submission FAILED for lead #{lead_id}")
+
+    # Email owner notification
+    if business and business.get("inbox_id") and business.get("owner_email"):
+        lead_data = {"caller_name": caller_name, "caller_phone": caller_phone,
+                     "issue_description": issue, "is_urgent": is_urgent}
+        ok = send_lead_notification(business["inbox_id"], business["owner_email"],
+                                    lead_data, business.get("name", ""))
+        print(f"[LEAD] Owner notification email {'sent' if ok else 'FAILED'}")

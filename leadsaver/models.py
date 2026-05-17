@@ -19,6 +19,9 @@ def init_db():
             contact_form_url TEXT,
             profile_text TEXT,
             agentphone_number TEXT,
+            owner_email TEXT,
+            inbox_id TEXT,
+            inbox_email TEXT,
             created_at TEXT DEFAULT (datetime('now'))
         );
 
@@ -67,13 +70,15 @@ def get_all_leads() -> list[dict]:
 
 def save_business(name: str, phone: str, website_url: str, contact_form_url: str,
                   hours: str, services: list[str], owner_email: str,
-                  agentphone_number: str = "") -> int:
+                  agentphone_number: str = "", inbox_id: str = "", inbox_email: str = "") -> int:
     profile_text = f"Business: {name}\nPhone: {phone}\nHours: {hours}\nServices: {', '.join(services)}"
     conn = get_db()
     cur = conn.execute(
-        """INSERT INTO businesses (name, phone, website_url, contact_form_url, profile_text, agentphone_number)
-           VALUES (?, ?, ?, ?, ?, ?)""",
-        (name, phone, website_url, contact_form_url, profile_text, agentphone_number),
+        """INSERT INTO businesses (name, phone, website_url, contact_form_url, profile_text,
+                                   agentphone_number, owner_email, inbox_id, inbox_email)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (name, phone, website_url, contact_form_url, profile_text,
+         agentphone_number, owner_email, inbox_id, inbox_email),
     )
     conn.commit()
     biz_id = cur.lastrowid

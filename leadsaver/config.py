@@ -31,6 +31,12 @@ BUSINESS = {
     ],
 }
 
+# AgentMail
+AGENTMAIL_API_KEY = os.getenv("AGENTMAIL_API_KEY")
+AGENTMAIL_BASE_URL = "https://api.agentmail.io/v0"
+AGENTMAIL_DOMAIN = "agentmail.to"
+NGROK_DOMAIN = os.getenv("NGROK_WEBSITE", "").replace("https://", "").replace("http://", "")
+
 # Server
 DEMO_SITE_URL = "http://localhost:3000"
 DB_PATH = "leadsaver.db"
