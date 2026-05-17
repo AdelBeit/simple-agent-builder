@@ -1,7 +1,9 @@
-import google.generativeai as genai
+import json
+from google import genai
+from google.genai import types
 from config import GEMINI_API_KEY, GEMINI_MODEL, BUSINESS
 
-genai.configure(api_key=GEMINI_API_KEY)
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 SYSTEM_PROMPT = f"""You are the virtual receptionist for {BUSINESS['name']}, a plumbing company in Austin, TX.
 
@@ -29,33 +31,29 @@ BEGIN_MESSAGE = (
     "Can I get your name?"
 )
 
-
-def build_model():
-    return genai.GenerativeModel(
-        model_name=GEMINI_MODEL,
-        system_instruction=SYSTEM_PROMPT,
-    )
+DONE_SIGNALS = ["have a great day", "call you back shortly", "goodbye", "take care", "talk soon"]
 
 
 def get_reply(conversation_history: list[dict], new_message: str) -> tuple[str, bool]:
-    """
-    Returns (reply_text, call_complete).
-    call_complete=True when the agent has said goodbye and should hang up.
-    """
-    model = build_model()
-    chat = model.start_chat(history=conversation_history)
-    response = chat.send_message(new_message)
+    """Returns (reply_text, call_complete)."""
+    history = [
+        types.Content(role=turn["role"], parts=[types.Part(text=turn["parts"][0])])
+        for turn in conversation_history
+    ]
+
+    response = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=history + [types.Content(role="user", parts=[types.Part(text=new_message)])],
+        config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT),
+    )
+
     reply = response.text.strip()
-
-    done_signals = ["have a great day", "call you back shortly", "goodbye", "take care", "talk soon"]
-    call_complete = any(sig in reply.lower() for sig in done_signals)
-
+    call_complete = any(sig in reply.lower() for sig in DONE_SIGNALS)
     return reply, call_complete
 
 
 def extract_lead_info(transcript: str) -> dict:
-    """Parse collected lead info from a full call transcript using Gemini."""
-    model = genai.GenerativeModel(model_name=GEMINI_MODEL)
+    """Parse collected lead info from a full call transcript."""
     prompt = f"""From this call transcript, extract:
 - caller_name
 - caller_phone
@@ -66,8 +64,8 @@ Return only valid JSON, no markdown.
 
 Transcript:
 {transcript}"""
-    response = model.generate_content(prompt)
-    import json
+
+    response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
     try:
         return json.loads(response.text.strip())
     except Exception:
