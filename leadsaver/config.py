@@ -20,7 +20,7 @@ BUSINESS = {
     "address": "4821 Burnet Rd, Austin, TX 78756",
     "email": "service@peakflowplumbing.com",
     "hours": "Mon–Fri 7am–7pm, Sat 8am–5pm, 24/7 Emergency",
-    "contact_form_url": "http://localhost:3100/#contact",
+    "contact_form_url": f"http://localhost:{os.getenv('PORT_PLUMBER', '3100')}/#contact",
     "services": [
         "Drain Cleaning",
         "Leak Repair",
@@ -37,6 +37,11 @@ AGENTMAIL_BASE_URL = "https://api.agentmail.to/v0"
 AGENTMAIL_DOMAIN = "agentmail.to"
 NGROK_DOMAIN = os.getenv("NGROK_WEBSITE", "").replace("https://", "").replace("http://", "")
 
+# Ports
+PORT_BACKEND = int(os.getenv("PORT_BACKEND", "8000"))
+PORT_PLUMBER = int(os.getenv("PORT_PLUMBER", "3100"))
+PORT_STYLIST = int(os.getenv("PORT_STYLIST", "3101"))
+PORT_ONBOARDING = int(os.getenv("PORT_ONBOARDING", "3010"))
+
 # Server
-DEMO_SITE_URL = "http://localhost:3000"
 DB_PATH = "leadsaver.db"

@@ -5,7 +5,7 @@ from models import (
     init_db, save_lead, mark_form_submitted, get_all_leads,
     save_business, get_business, get_business_by_number, update_business_profile,
 )
-from agent import get_reply, extract_lead_info, BEGIN_MESSAGE
+from agent import get_reply, extract_lead_info, BEGIN_MESSAGE, build_begin_message
 from onboarding import get_onboarding_reply, BEGIN_MESSAGE as ONBOARDING_BEGIN, extract_url
 from browser_submit import submit_lead_to_form, scrape_business_website
 from agentmail import create_inbox, register_reply_webhook, send_config_summary, send_lead_notification
@@ -49,18 +49,29 @@ async def handle_call(request: Request, background_tasks: BackgroundTasks):
     # Look up the business this number belongs to
     business = get_business_by_number(agentphone_number) if agentphone_number else None
 
-    if event in ("call.started", "call_started", "new_call") or call_id not in active_calls:
-        active_calls[call_id] = {"history": [], "transcript": "", "business": business}
-        return JSONResponse({"text": BEGIN_MESSAGE, "hangup": False})
+    caller_number = data.get("from") or payload.get("from", "")
+
+    if call_id not in active_calls:
+        begin = build_begin_message(business or {}, caller_number)
+        # Seed history with the begin message AgentPhone already played
+        active_calls[call_id] = {
+            "history": [{"role": "model", "parts": [begin]}],
+            "transcript": f"\nAgent: {begin}",
+            "business": business,
+            "caller_number": caller_number,
+        }
+        # AgentPhone plays beginMessage itself — don't double it
+        if event in ("call.started", "call_started", "new_call"):
+            return JSONResponse({"text": "", "hangup": False})
 
     caller_text = data.get("transcript") or payload.get("text") or payload.get("transcript") or payload.get("message", "")
     if not caller_text:
         return JSONResponse({"text": "", "hangup": False})
 
-    state = active_calls.setdefault(call_id, {"history": [], "transcript": "", "business": business})
+    state = active_calls.setdefault(call_id, {"history": [], "transcript": "", "business": business, "caller_number": caller_number})
     state["transcript"] += f"\nCaller: {caller_text}"
 
-    reply, call_complete = get_reply(state["history"], caller_text, business=state.get("business"))
+    reply, call_complete = get_reply(state["history"], caller_text, business=state.get("business"), caller_number=state.get("caller_number"))
 
     state["history"].append({"role": "user", "parts": [caller_text]})
     state["history"].append({"role": "model", "parts": [reply]})
