@@ -19,6 +19,7 @@ def init_db():
             contact_form_url TEXT,
             profile_text TEXT,
             agentphone_number TEXT,
+            agentphone_agent_id TEXT,
             owner_email TEXT,
             inbox_id TEXT,
             inbox_email TEXT,

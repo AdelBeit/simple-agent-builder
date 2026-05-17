@@ -9,6 +9,7 @@ from agent import get_reply, extract_lead_info, BEGIN_MESSAGE, build_begin_messa
 from onboarding import get_onboarding_reply, BEGIN_MESSAGE as ONBOARDING_BEGIN, extract_url
 from browser_submit import submit_lead_to_form, scrape_business_website
 from agentmail import create_inbox, register_reply_webhook, send_config_summary, send_lead_notification
+from agentphone_provision import provision_business_agent
 
 app = FastAPI(title="LeadSaver")
 
@@ -255,6 +256,23 @@ async def complete_onboarding(session_id: str, data: dict):
             print(f"[ONBOARDING] Config email {'sent' if ok else 'FAILED'} → {data['owner_email']}")
         except Exception as e:
             print(f"[ONBOARDING] Config email failed (non-fatal): {e}")
+
+    # 5. Provision a dedicated AgentPhone agent + number for this business
+    try:
+        provisioned = provision_business_agent(business)
+        agent_id = provisioned["agent_id"]
+        agent_number = provisioned["phone_number"]
+        conn = get_db()
+        conn.execute(
+            "UPDATE businesses SET agentphone_agent_id=?, agentphone_number=? WHERE id=?",
+            (agent_id, agent_number, biz_id)
+        )
+        conn.commit()
+        conn.close()
+        print(f"[ONBOARDING] Agent provisioned: {agent_id} / {agent_number}")
+    except Exception as e:
+        print(f"[ONBOARDING] Agent provisioning failed (non-fatal): {e}")
+        agent_number = ""
 
     print(f"[ONBOARDING] Complete for business #{biz_id}")
 
