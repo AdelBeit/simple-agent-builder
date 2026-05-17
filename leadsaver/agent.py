@@ -5,12 +5,18 @@ from config import GEMINI_API_KEY, GEMINI_MODEL, BUSINESS
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-SYSTEM_PROMPT = f"""You are the virtual receptionist for {BUSINESS['name']}, a plumbing company in Austin, TX.
+DONE_SIGNALS = ["have a great day", "call you back shortly", "goodbye", "take care", "talk soon"]
+
+
+def _build_system_prompt(business: dict) -> str:
+    services = business.get("services", [])
+    services_str = ", ".join(services) if isinstance(services, list) else services
+    return f"""You are the virtual receptionist for {business['name']}.
 
 Your only job is to collect a missed-call lead. Collect these four things in order:
 1. Caller's full name
 2. Best callback phone number (read it back to confirm)
-3. What plumbing issue they need help with
+3. What issue they need help with
 4. Urgency (emergency or can wait — only ask if not obvious)
 
 Rules:
@@ -18,24 +24,32 @@ Rules:
 - Never ask more than one question at a time.
 - Never quote prices. Say "the owner will go over pricing when they call back."
 - Never schedule appointments.
-- If asked if you're human, say: "I'm a virtual assistant for {BUSINESS['name']}."
+- If asked if you're human, say: "I'm a virtual assistant for {business['name']}."
 - Once all four items are collected, confirm back and say goodbye.
-- If caller mentions flooding, burst pipe, or no hot water, note it as urgent.
 
-Services offered: {', '.join(BUSINESS['services'])}
+Services offered: {services_str}
+Business hours: {business.get('hours', 'contact us for hours')}
+{f"Additional info: {business['profile_text']}" if business.get('profile_text') else ''}
 """
 
-BEGIN_MESSAGE = (
-    f"Hi, thanks for calling {BUSINESS['name']}! "
-    "The owner is unavailable right now, but I can take your info and make sure someone gets back to you quickly. "
-    "Can I get your name?"
-)
 
-DONE_SIGNALS = ["have a great day", "call you back shortly", "goodbye", "take care", "talk soon"]
+def build_begin_message(business: dict) -> str:
+    return (
+        f"Hi, thanks for calling {business['name']}! "
+        "The owner is unavailable right now, but I can take your info and make sure someone gets back to you quickly. "
+        "Can I get your name?"
+    )
 
 
-def get_reply(conversation_history: list[dict], new_message: str) -> tuple[str, bool]:
-    """Returns (reply_text, call_complete)."""
+# Fallback for when no DB business is found — uses hardcoded config
+BEGIN_MESSAGE = build_begin_message(BUSINESS)
+
+
+def get_reply(conversation_history: list[dict], new_message: str, business: dict | None = None) -> tuple[str, bool]:
+    """Returns (reply_text, call_complete). Uses DB business if provided, else falls back to config."""
+    biz = business or BUSINESS
+    system_prompt = _build_system_prompt(biz)
+
     history = [
         types.Content(role=turn["role"], parts=[types.Part(text=turn["parts"][0])])
         for turn in conversation_history
@@ -44,7 +58,7 @@ def get_reply(conversation_history: list[dict], new_message: str) -> tuple[str, 
     response = client.models.generate_content(
         model=GEMINI_MODEL,
         contents=history + [types.Content(role="user", parts=[types.Part(text=new_message)])],
-        config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT),
+        config=types.GenerateContentConfig(system_instruction=system_prompt),
     )
 
     reply = response.text.strip()
