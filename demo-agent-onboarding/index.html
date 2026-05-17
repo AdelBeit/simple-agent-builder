@@ -107,6 +107,7 @@
       });
       const data = await res.json();
       removeTyping();
+      if (data.scraping) addBubble('Scraped your website — reviewing results...', 'system');
       addBubble(data.reply, 'agent');
 
       if (data.done) {

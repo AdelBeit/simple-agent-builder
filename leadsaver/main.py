@@ -1,15 +1,23 @@
 from fastapi import FastAPI, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from models import (
     init_db, save_lead, mark_form_submitted, get_all_leads,
     save_business, get_business, get_business_by_number, update_business_profile,
 )
 from agent import get_reply, extract_lead_info, BEGIN_MESSAGE
-from onboarding import get_onboarding_reply, BEGIN_MESSAGE as ONBOARDING_BEGIN
+from onboarding import get_onboarding_reply, BEGIN_MESSAGE as ONBOARDING_BEGIN, extract_url
 from browser_submit import submit_lead_to_form, scrape_business_website
 from agentmail import create_inbox, register_reply_webhook, send_config_summary, send_lead_notification
 
 app = FastAPI(title="LeadSaver")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3001", "http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # In-memory state keyed by call/session ID
 active_calls: dict[str, dict] = {}
@@ -108,17 +116,32 @@ async def onboarding_message(request: Request, background_tasks: BackgroundTasks
     message = body.get("message", "")
 
     state = active_onboarding.setdefault(session_id, {"history": [], "transcript": ""})
-    reply, business_data = get_onboarding_reply(state["history"], message)
 
-    state["history"].append({"role": "user", "parts": [message]})
+    # Detect URL in message — scrape immediately and inject results
+    scraped_data = None
+    url = extract_url(message)
+    if url and not state.get("scraped"):
+        state["scraped"] = True
+        state["website_url"] = url
+        scraped_data = await scrape_business_website(url)
+        if not scraped_data:
+            scraped_data = f"(Could not scrape {url} — may be unreachable or require login)"
+
+    reply, business_data = get_onboarding_reply(state["history"], message, scraped_data=scraped_data)
+
+    # Store message with scraped data appended so history is accurate
+    stored_message = f"{message}\n\n[SCRAPED DATA]\n{scraped_data}" if scraped_data else message
+    state["history"].append({"role": "user", "parts": [stored_message]})
     state["history"].append({"role": "model", "parts": [reply]})
 
     if business_data:
+        if state.get("website_url") and not business_data.get("website_url"):
+            business_data["website_url"] = state["website_url"]
         background_tasks.add_task(complete_onboarding, session_id, business_data)
         active_onboarding.pop(session_id, None)
         return {"reply": reply, "done": True, "business": business_data}
 
-    return {"reply": reply, "done": False}
+    return {"reply": reply, "done": False, "scraping": bool(scraped_data)}
 
 
 # ---------------------------------------------------------------------------
