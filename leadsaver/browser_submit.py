@@ -1,10 +1,9 @@
-from browser_use import Agent as BrowserAgent, Browser
-from langchain_google_genai import ChatGoogleGenerativeAI
-from config import GEMINI_API_KEY, BUSINESS
+from browser_use import Agent as BrowserAgent, ChatGoogle
+from config import BUSINESS
 
 
 def _get_llm():
-    return ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=GEMINI_API_KEY)
+    return ChatGoogle(model="gemini-2.5-flash")
 
 
 async def submit_lead_to_form(name: str, phone: str, email: str, service: str,
@@ -23,43 +22,49 @@ async def submit_lead_to_form(name: str, phone: str, email: str, service: str,
     Click the Submit button and confirm the form was submitted successfully.
     """
 
-    browser = Browser()
-    agent = BrowserAgent(task=task, llm=_get_llm(), browser=browser)
-
     try:
+        agent = BrowserAgent(task=task, llm=_get_llm())
         await agent.run()
-        await browser.close()
         return True
     except Exception as e:
         print(f"[BROWSER] Form submission failed: {e}")
-        await browser.close()
         return False
 
 
 async def scrape_business_website(url: str) -> str:
-    """Scrape a business website and return a plain-text profile summary."""
-    task = f"""
-    Go to {url}.
-    Extract the following information from the website:
-    - Business name and tagline
-    - Services offered (list all)
-    - Business hours
-    - Phone number and address
-    - Any pricing information
-    - Any FAQs or common questions answered
-
-    Return a clean plain-text summary with sections. No markdown, no HTML.
-    """
-
-    browser = Browser()
-    agent = BrowserAgent(task=task, llm=_get_llm(), browser=browser)
+    """Fetch a business website and extract a plain-text profile summary."""
+    import httpx
+    from bs4 import BeautifulSoup
+    from google import genai as _genai
+    from config import GEMINI_API_KEY, GEMINI_MODEL
 
     try:
-        result = await agent.run()
-        await browser.close()
-        # browser-use returns the final agent message as the result
-        return str(result) if result else ""
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for tag in soup(["script", "style", "nav", "footer", "head"]):
+            tag.decompose()
+        raw_text = soup.get_text(separator="\n", strip=True)
+        raw_text = "\n".join(line for line in raw_text.splitlines() if line.strip())[:8000]
+
+        client_g = _genai.Client(api_key=GEMINI_API_KEY)
+        prompt = f"""From this website text, extract a business profile summary with:
+- Business name and tagline
+- Services offered (list)
+- Business hours
+- Phone number and address
+- Any pricing info
+
+Website text:
+{raw_text}
+
+Return plain text, no markdown."""
+
+        response = client_g.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+        return response.text.strip()
+
     except Exception as e:
-        print(f"[BROWSER] Website scrape failed: {e}")
-        await browser.close()
+        print(f"[SCRAPE] Failed for {url}: {e}")
         return ""
