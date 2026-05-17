@@ -37,7 +37,7 @@ def register_reply_webhook(inbox_id: str) -> bool:
     resp = httpx.post(
         f"{AGENTMAIL_BASE_URL}/webhooks",
         headers=_headers(),
-        json={"url": webhook_url, "event_type": "message.received", "inbox_id": inbox_id},
+        json={"url": webhook_url, "event_types": ["message.received"], "inbox_id": inbox_id},
     )
     return resp.status_code < 300
 
