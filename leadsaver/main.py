@@ -194,13 +194,7 @@ def list_businesses():
 async def complete_onboarding(session_id: str, data: dict):
     print(f"[ONBOARDING {session_id}] Saving business: {data.get('name')}")
 
-    # 1. Create AgentMail inbox for this business
-    inbox = create_inbox(data.get("name", "business"))
-    inbox_id = inbox["id"]
-    inbox_email = inbox["email"]
-    print(f"[ONBOARDING] Inbox created: {inbox_email}")
-
-    # 2. Save business to DB
+    # 1. Save business to DB first — always, regardless of downstream failures
     biz_id = save_business(
         name=data.get("name", ""),
         phone=data.get("phone", ""),
@@ -209,15 +203,26 @@ async def complete_onboarding(session_id: str, data: dict):
         hours=data.get("hours", ""),
         services=data.get("services", []),
         owner_email=data.get("owner_email", ""),
-        inbox_id=inbox_id,
-        inbox_email=inbox_email,
     )
     print(f"[ONBOARDING] Business saved as ID #{biz_id}")
 
-    # 3. Register webhook so owner replies come back to us
-    register_reply_webhook(inbox_id)
+    # 2. Create AgentMail inbox
+    inbox_id, inbox_email = "", ""
+    try:
+        inbox = create_inbox(data.get("name", "business"))
+        inbox_id = inbox["id"]
+        inbox_email = inbox["email"]
+        print(f"[ONBOARDING] Inbox created: {inbox_email}")
+        from models import get_db
+        conn = get_db()
+        conn.execute("UPDATE businesses SET inbox_id=?, inbox_email=? WHERE id=?", (inbox_id, inbox_email, biz_id))
+        conn.commit()
+        conn.close()
+        register_reply_webhook(inbox_id)
+    except Exception as e:
+        print(f"[ONBOARDING] AgentMail inbox creation failed (non-fatal): {e}")
 
-    # 4. Scrape website
+    # 3. Scrape website
     if data.get("website_url"):
         print(f"[ONBOARDING] Scraping {data['website_url']} ...")
         profile_text = await scrape_business_website(data["website_url"])
@@ -225,11 +230,14 @@ async def complete_onboarding(session_id: str, data: dict):
             update_business_profile(biz_id, profile_text)
             print(f"[ONBOARDING] Profile enriched ({len(profile_text)} chars)")
 
-    # 5. Send config summary email to owner
+    # 4. Send config summary email to owner
     business = get_business(biz_id)
-    if data.get("owner_email") and business:
-        ok = send_config_summary(inbox_id, data["owner_email"], business)
-        print(f"[ONBOARDING] Config email {'sent' if ok else 'FAILED'} → {data['owner_email']}")
+    if inbox_id and data.get("owner_email") and business:
+        try:
+            ok = send_config_summary(inbox_id, data["owner_email"], business)
+            print(f"[ONBOARDING] Config email {'sent' if ok else 'FAILED'} → {data['owner_email']}")
+        except Exception as e:
+            print(f"[ONBOARDING] Config email failed (non-fatal): {e}")
 
     print(f"[ONBOARDING] Complete for business #{biz_id}")
 
