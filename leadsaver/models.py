@@ -63,3 +63,40 @@ def get_all_leads() -> list[dict]:
     rows = conn.execute("SELECT * FROM leads ORDER BY created_at DESC").fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+def save_business(name: str, phone: str, website_url: str, contact_form_url: str,
+                  hours: str, services: list[str], owner_email: str,
+                  agentphone_number: str = "") -> int:
+    profile_text = f"Business: {name}\nPhone: {phone}\nHours: {hours}\nServices: {', '.join(services)}"
+    conn = get_db()
+    cur = conn.execute(
+        """INSERT INTO businesses (name, phone, website_url, contact_form_url, profile_text, agentphone_number)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (name, phone, website_url, contact_form_url, profile_text, agentphone_number),
+    )
+    conn.commit()
+    biz_id = cur.lastrowid
+    conn.close()
+    return biz_id
+
+
+def update_business_profile(business_id: int, profile_text: str):
+    conn = get_db()
+    conn.execute("UPDATE businesses SET profile_text = ? WHERE id = ?", (profile_text, business_id))
+    conn.commit()
+    conn.close()
+
+
+def get_business(business_id: int) -> dict | None:
+    conn = get_db()
+    row = conn.execute("SELECT * FROM businesses WHERE id = ?", (business_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_business_by_number(agentphone_number: str) -> dict | None:
+    conn = get_db()
+    row = conn.execute("SELECT * FROM businesses WHERE agentphone_number = ?", (agentphone_number,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
