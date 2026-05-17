@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Goldfinch Barbershop | Austin's Best Haircuts & Color Since 2012</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; line-height: 1.6; }
+
+    header {
+      background: #1c1c1c;
+      color: #fff;
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    }
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 68px;
+      gap: 16px;
+    }
+    .logo { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; white-space: nowrap; }
+    .logo span { color: #d4a853; }
+    nav { display: flex; gap: 24px; align-items: center; }
+    nav a { color: #ccc; text-decoration: none; font-size: .9rem; font-weight: 500; transition: color .2s; }
+    nav a:hover { color: #fff; }
+    .phone-badge {
+      background: #d4a853;
+      color: #1c1c1c;
+      padding: 8px 18px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background .2s;
+    }
+    .phone-badge:hover { background: #c49a3f; }
+
+    .hero {
+      background: linear-gradient(135deg, #1c1c1c 0%, #2a2a2a 60%, #1c1c1c 100%);
+      color: #fff;
+      padding: 96px 24px 80px;
+      text-align: center;
+    }
+    .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 900; line-height: 1.15; margin-bottom: 20px; }
+    .hero h1 em { color: #d4a853; font-style: normal; }
+    .hero p { font-size: 1.2rem; color: #aaa; max-width: 560px; margin: 0 auto 36px; }
+    .hero-ctas { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: #d4a853; color: #1c1c1c; padding: 14px 32px;
+      border-radius: 4px; font-size: 1rem; font-weight: 700;
+      text-decoration: none; transition: background .2s;
+    }
+    .btn-primary:hover { background: #c49a3f; }
+    .btn-outline {
+      border: 2px solid #fff; color: #fff; padding: 13px 32px;
+      border-radius: 4px; font-size: 1rem; font-weight: 700;
+      text-decoration: none; transition: all .2s;
+    }
+    .btn-outline:hover { background: rgba(255,255,255,.1); }
+    .hero-trust { margin-top: 48px; color: #888; font-size: .9rem; }
+    .hero-trust strong { color: #d4a853; }
+
+    section { padding: 72px 24px; }
+    .section-inner { max-width: 1100px; margin: 0 auto; }
+    .section-title { text-align: center; margin-bottom: 48px; }
+    .section-title h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; color: #1c1c1c; margin-bottom: 10px; }
+    .section-title p { color: #555; font-size: 1.05rem; }
+
+    .services { background: #f7f5f0; }
+    .services-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+    .service-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 28px 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .service-card:hover { transform: translateY(-4px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+    .service-price { font-size: .85rem; color: #d4a853; font-weight: 700; margin-bottom: 4px; }
+    .service-card h3 { color: #1c1c1c; font-size: 1.1rem; margin-bottom: 8px; }
+    .service-card p { color: #555; font-size: .9rem; }
+
+    .why-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 32px; }
+    .why-item { text-align: center; }
+    .why-icon {
+      width: 72px; height: 72px;
+      background: #1c1c1c;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem;
+      margin: 0 auto 16px;
+    }
+    .why-item h3 { font-size: 1.1rem; color: #1c1c1c; margin-bottom: 8px; }
+    .why-item p { color: #555; font-size: .92rem; }
+
+    .testimonials { background: #f7f5f0; }
+    .testi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+    .testi-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 28px 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+    }
+    .stars { color: #d4a853; font-size: 1.1rem; margin-bottom: 10px; }
+    .testi-card p { color: #444; font-size: .95rem; font-style: italic; margin-bottom: 16px; }
+    .testi-author { font-weight: 700; color: #1c1c1c; font-size: .9rem; }
+
+    .contact { background: #fff; }
+    .contact-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+    .contact-info h3 { font-size: 1.3rem; color: #1c1c1c; margin-bottom: 20px; }
+    .contact-detail { display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+    .contact-detail .icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
+    .contact-detail p { color: #333; font-size: .95rem; }
+    .contact-detail a { color: #d4a853; text-decoration: none; }
+    .walkin-box {
+      background: #fdf8ec;
+      border-left: 4px solid #d4a853;
+      padding: 16px 20px;
+      border-radius: 0 6px 6px 0;
+      margin-top: 28px;
+    }
+    .walkin-box strong { color: #b8892e; display: block; margin-bottom: 4px; }
+
+    form { display: flex; flex-direction: column; gap: 14px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    label { font-size: .85rem; font-weight: 600; color: #333; display: block; margin-bottom: 4px; }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #d0d0d0;
+      border-radius: 4px;
+      font-size: .95rem;
+      font-family: inherit;
+      transition: border-color .2s;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #1c1c1c; }
+    textarea { resize: vertical; min-height: 100px; }
+    .submit-btn {
+      background: #d4a853;
+      color: #1c1c1c;
+      padding: 14px;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .submit-btn:hover { background: #c49a3f; }
+    .form-success {
+      display: none;
+      background: #edfaf1;
+      border: 1.5px solid #27ae60;
+      color: #1a7a40;
+      padding: 14px 18px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    footer {
+      background: #1c1c1c;
+      color: #888;
+      padding: 40px 24px;
+      text-align: center;
+    }
+    footer .footer-inner { max-width: 800px; margin: 0 auto; }
+    footer .footer-name { color: #fff; font-size: 1.2rem; font-weight: 800; margin-bottom: 10px; }
+    footer .footer-name span { color: #d4a853; }
+    footer p { font-size: .88rem; margin-bottom: 4px; }
+    footer a { color: #888; text-decoration: none; }
+    footer .copyright { margin-top: 20px; font-size: .8rem; color: #555; }
+
+    @media (max-width: 720px) {
+      nav { display: none; }
+      .contact-wrap { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">Gold<span>finch</span> Barbershop</div>
+    <nav>
+      <a href="#services">Services</a>
+      <a href="#why-us">Why Us</a>
+      <a href="#testimonials">Reviews</a>
+      <a href="#contact">Book Now</a>
+    </nav>
+    <a class="phone-badge" href="tel:+12318670908">(231) 867-0908</a>
+  </div>
+</header>
+
+<section class="hero">
+  <h1>Expert Haircuts &amp; Color<br>for <em>All Y'all</em></h1>
+  <p>Austin's original full-service salon and barbershop. Quality cuts, good vibes, free drinks — since 2012.</p>
+  <div class="hero-ctas">
+    <a class="btn-primary" href="tel:+12318670908">Call Now: (231) 867-0908</a>
+    <a class="btn-outline" href="#contact">Book an Appointment</a>
+  </div>
+  <p class="hero-trust">
+    <strong>★ 4.9/5</strong> from 520+ Austin customers &nbsp;|&nbsp;
+    Austin Chronicle Best Barbershop &nbsp;|&nbsp; Open 7 Days
+  </p>
+</section>
+
+<section class="services" id="services">
+  <div class="section-inner">
+    <div class="section-title">
+      <h2>Our Services</h2>
+      <p>Quality cuts, color, and trims for every style, gender, and age.</p>
+    </div>
+    <div class="services-grid">
+      <div class="service-card">
+        <div class="service-price">$39+</div>
+        <h3>Short Cut</h3>
+        <p>Clipper or scissor work for lengths above the chin. Includes a razor neck shave. Wash and styling available as add-on.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-price">$60+</div>
+        <h3>Long Cut</h3>
+        <p>Scissor cut for lengths below the chin. Think transformation cuts, bobs, and long layers. Full blow-dry or hot tool styling available.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-price">$49+</div>
+        <h3>Skin Fade</h3>
+        <p>Advanced clipper work for short cuts that takes the hair down to the skin. Includes detailed blending and a razor neck shave.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-price">$24+</div>
+        <h3>Buzz Cut</h3>
+        <p>One-length clipper cut used all over. Quick, clean, and classic. Includes a razor neck shave.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-price">$29+</div>
+        <h3>Kid Cut</h3>
+        <p>For children aged 5 years and younger, all hair lengths. Patient stylists who make it fun.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-price">$55+</div>
+        <h3>Blowout</h3>
+        <p>Hair wash and round brush blow dry. Add hot tool styling for the full treatment. Perfect before a night out.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-price">$117+</div>
+        <h3>Color &amp; Highlights</h3>
+        <p>From single-process color to full highlights, balayage, and bleach &amp; tone. Consultation required for corrections.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-price">$35+</div>
+        <h3>Beard Line-Up</h3>
+        <p>Beard trim with a straight razor line-up. Keep your beard looking sharp and intentional.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-price">$65+</div>
+        <h3>Special Occasion Hair</h3>
+        <p>Updos, formal styling, and bridal hair. Consult with your stylist for the perfect event look.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="why-us">
+  <div class="section-inner">
+    <div class="section-title">
+      <h2>Why Austin Keeps Coming Back</h2>
+      <p>We've been setting the quality standard for Austin haircuts since 2012.</p>
+    </div>
+    <div class="why-grid">
+      <div class="why-item">
+        <div class="why-icon">✂️</div>
+        <h3>Expert Stylists</h3>
+        <p>Every stylist is trained across all hair types and styles. No judgment, no pressure — just great results.</p>
+      </div>
+      <div class="why-item">
+        <div class="why-icon">🍺</div>
+        <h3>Free Drinks for Everyone</h3>
+        <p>Beer, coffee, soda — on us. Because getting a haircut should actually be enjoyable.</p>
+      </div>
+      <div class="why-item">
+        <div class="why-icon">📅</div>
+        <h3>Easy Online Booking</h3>
+        <p>Book ahead online or walk in. We're open every day and all are welcome.</p>
+      </div>
+      <div class="why-item">
+        <div class="why-icon">🎵</div>
+        <h3>Good Vibes Only</h3>
+        <p>Rotating playlists, local art on the walls, and zero pretense. Come as you are.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="testimonials" id="testimonials">
+  <div class="section-inner">
+    <div class="section-title">
+      <h2>What Our Customers Say</h2>
+      <p>Over 520 five-star reviews across Google and Yelp.</p>
+    </div>
+    <div class="testi-grid">
+      <div class="testi-card">
+        <div class="stars">★★★★★</div>
+        <p>"I've been going to Maya at Goldfinch for two years now. I actually look forward to my appointments — it feels like catching up with a friend who happens to be amazing at hair. Highly recommend."</p>
+        <div class="testi-author">— Jordan M., East Austin</div>
+      </div>
+      <div class="testi-card">
+        <div class="stars">★★★★★</div>
+        <p>"Went from a straight-cut to a wolf cut and was super nervous. My stylist made me feel completely comfortable and excited about the change. I was thrilled with the result — I'll be back!"</p>
+        <div class="testi-author">— Avery K., South Lamar</div>
+      </div>
+      <div class="testi-card">
+        <div class="stars">★★★★★</div>
+        <p>"Best place to get a haircut in Austin, period. Booking is easy, staff is helpful, and the stylists are pros. I always get a short cut — reasonably priced and I leave feeling like a new person."</p>
+        <div class="testi-author">— Eduardo R., Domain Area</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="contact" id="contact">
+  <div class="section-inner">
+    <div class="section-title">
+      <h2>Book an Appointment</h2>
+      <p>Fill out the form and we'll call you back to confirm your appointment.</p>
+    </div>
+    <div class="contact-wrap">
+      <div class="contact-info">
+        <h3>Contact Information</h3>
+        <div class="contact-detail">
+          <div class="icon">📍</div>
+          <p>1910 S Congress Ave<br>Austin, TX 78704</p>
+        </div>
+        <div class="contact-detail">
+          <div class="icon">📞</div>
+          <p><a href="tel:+12318670908">(231) 867-0908</a></p>
+        </div>
+        <div class="contact-detail">
+          <div class="icon">✉️</div>
+          <p><a href="mailto:hello@goldfinchbarbershop.com">hello@goldfinchbarbershop.com</a></p>
+        </div>
+        <div class="contact-detail">
+          <div class="icon">🕐</div>
+          <p>
+            Mon–Fri: 9am – 8pm<br>
+            Saturday: 9am – 6pm<br>
+            Sunday: 10am – 5pm
+          </p>
+        </div>
+        <div class="walkin-box">
+          <strong>Walk-Ins Welcome</strong>
+          Can't book ahead? No problem — stop by any location and we'll fit you in. First come, first served.
+        </div>
+      </div>
+
+      <div>
+        <form id="contactForm">
+          <div class="form-row">
+            <div>
+              <label for="name">Full Name *</label>
+              <input id="name" name="name" type="text" placeholder="Alex Johnson" required>
+            </div>
+            <div>
+              <label for="phone">Phone Number *</label>
+              <input id="phone" name="phone" type="tel" placeholder="(231) 867-0908" required>
+            </div>
+          </div>
+          <div>
+            <label for="email">Email Address</label>
+            <input id="email" name="email" type="email" placeholder="alex@example.com">
+          </div>
+          <div>
+            <label for="service">Service Needed *</label>
+            <select id="service" name="service" required>
+              <option value="" disabled selected>Select a service…</option>
+              <option value="Short Cut">Short Cut — $39+</option>
+              <option value="Long Cut">Long Cut — $60+</option>
+              <option value="Skin Fade">Skin Fade — $49+</option>
+              <option value="Buzz Cut">Buzz Cut — $24+</option>
+              <option value="Kid Cut">Kid Cut — $29+</option>
+              <option value="Blowout">Blowout — $55+</option>
+              <option value="Color & Highlights">Color &amp; Highlights — $117+</option>
+              <option value="Beard Line-Up">Beard Line-Up — $35+</option>
+              <option value="Special Occasion Hair">Special Occasion Hair — $65+</option>
+              <option value="Other">Other / Not Sure</option>
+            </select>
+          </div>
+          <div>
+            <label for="message">Any Details or Preferences?</label>
+            <textarea id="message" name="message" placeholder="e.g. Looking for a skin fade on the sides, a little length on top. Available weekdays after 5pm…"></textarea>
+          </div>
+          <button class="submit-btn" type="submit">Request Appointment →</button>
+          <div class="form-success" id="formSuccess">
+            ✅ Got it! We'll call you back shortly to confirm. For immediate booking, call <strong>(231) 867-0908</strong>.
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-name">Gold<span>finch</span> Barbershop</div>
+    <p>1910 S Congress Ave, Austin, TX 78704</p>
+    <p><a href="tel:+12318670908">(231) 867-0908</a> &nbsp;|&nbsp; <a href="mailto:hello@goldfinchbarbershop.com">hello@goldfinchbarbershop.com</a></p>
+    <p>Mon–Fri 9am–8pm &nbsp;|&nbsp; Sat 9am–6pm &nbsp;|&nbsp; Sun 10am–5pm</p>
+    <p class="copyright">© 2026 Goldfinch Barbershop. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('contactForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target));
+    try {
+      const res = await fetch('/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        document.getElementById('formSuccess').style.display = 'block';
+        e.target.reset();
+        document.getElementById('formSuccess').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    } catch {
+      alert('Something went wrong. Please call us directly at (231) 867-0908.');
+    }
+  });
+</script>
+
+</body>
+</html>

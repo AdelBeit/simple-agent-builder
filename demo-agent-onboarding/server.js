@@ -6,5 +6,5 @@ app.use(express.static(path.join(__dirname)));
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-const PORT = 3001;
+const PORT = 3102;
 app.listen(PORT, () => console.log(`Onboarding UI → http://localhost:${PORT}`));
