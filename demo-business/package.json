@@ -1,6 +1,7 @@
 {
   "name": "demo-contact-us",
   "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "start": "node server.js"
   },
