@@ -137,11 +137,15 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
     if session_id in active_onboarding:
         return await handle_onboarding(request, background_tasks)
 
+    caller_text = data.get("transcript") or payload.get("text", "")
+
     if session_id not in active_greeter:
         active_greeter[session_id] = {"history": [], "turns": 0}
-        return JSONResponse({"text": "", "hangup": False})
+        if not caller_text:
+            # Pure init event — no caller speech yet, AgentPhone plays beginMessage
+            return JSONResponse({"text": "", "hangup": False})
+        # Caller already spoke on first hit — fall through and process immediately
 
-    caller_text = data.get("transcript") or payload.get("text", "")
     if not caller_text:
         return JSONResponse({"text": "", "hangup": False})
 
