@@ -90,7 +90,9 @@ Your LeadSaver setup is complete. Here's what we've got on file:
 
 Something off? Just reply to this email — we'll fix it right away.
 
-To activate your subscription ($49/mo): {STRIPE_PAYMENT_LINK}
+Your receptionist is live and ready to take calls for {name}. To keep it active beyond your free trial, subscribe for $49/month — no setup fees, cancel anytime.
+
+{STRIPE_PAYMENT_LINK}
 
 — LeadSaver
 """
@@ -105,11 +107,16 @@ To activate your subscription ($49/mo): {STRIPE_PAYMENT_LINK}
 <h3 style="margin-top:20px; font-size:15px;">Services</h3>
 <ul style="margin-top:4px;">{services_li}</ul>
 <p style="margin-top:24px; color:#555;">Something off? Just reply to this email — we'll fix it right away.</p>
-<p style="margin-top:16px;">
+<div style="margin-top:28px; padding:16px; background:#f8f9fb; border-radius:8px; border-left:4px solid #0a1f44;">
+  <p style="margin:0 0 6px 0; font-size:15px; font-weight:600; color:#0a1f44;">Your AI receptionist for {name} is live.</p>
+  <p style="margin:0 0 16px 0; font-size:14px; color:#555; line-height:1.5;">
+    It will answer missed calls, collect lead info, and submit it to your contact form automatically.
+    Subscribe to keep it running — <strong>$49/month</strong>, no setup fees, cancel anytime.
+  </p>
   <a href="{STRIPE_PAYMENT_LINK}" style="background:#0a1f44; color:#fff; padding:12px 24px; border-radius:6px; text-decoration:none; font-weight:600; font-size:15px;">
-    Activate subscription — $49/mo
+    Activate your receptionist — $49/mo
   </a>
-</p>"""
+</div>"""
 
     html = _html_wrap(f"Your AI receptionist is ready — {name} ✅", body_html)
 
