@@ -11,6 +11,7 @@ from onboarding import get_onboarding_reply, BEGIN_MESSAGE as ONBOARDING_BEGIN, 
 from browser_submit import submit_lead_to_form, scrape_business_website
 from agentmail import create_inbox, register_reply_webhook, send_config_summary, send_lead_notification
 from agentphone_provision import provision_business_agent
+from config import AGENTPHONE_AGENT_ID
 # from moss_rag import store_profile, query_profile  # disabled — free tier index limit reached
 
 app = FastAPI(title="LeadSaver")
@@ -90,31 +91,9 @@ async def handle_call(request: Request, background_tasks: BackgroundTasks):
 
 
 # ---------------------------------------------------------------------------
-# Webhook: Greeter agent (pitches LeadSaver, transfers to onboarding)
+# Webhook: Unified greeter + onboarding agent (one flow, no transfer)
 # ---------------------------------------------------------------------------
-GREETER_SYSTEM_PROMPT = """You are the sales representative for LeadSaver, an AI receptionist service for small businesses.
-
-About LeadSaver:
-- LeadSaver answers missed calls 24/7 as a virtual receptionist for any small business (plumbers, roofers, contractors, salons, etc.)
-- When a customer calls and the owner misses it, LeadSaver's AI answers, collects the caller's name, phone number, and what they need
-- It then automatically submits that lead to the business's contact form and emails the owner
-- Pricing: $49/month flat rate. No setup fees. No per-call charges.
-- Setup takes 2 minutes over the phone — we pull info from their website automatically
-
-Your opening gave them two options: get set up now, or learn more first.
-
-Your job:
-- If they want to get set up / onboard → say your transfer line and end with TRANSFER_NOW
-- If they want to learn more → give a friendly 2-sentence pitch, then ask if they're ready to get set up
-- If they ask about pricing → $49/month flat, no setup fees
-- If they ask how it works → "We set up an AI receptionist for your business in 2 minutes. It answers missed calls, collects lead info, and emails it to you automatically."
-- Keep every response to 1-2 sentences
-- When ready to transfer: "Let me connect you with our onboarding team!" then TRANSFER_NOW
-
-Transfer signals: "yes", "set me up", "sign me up", "let's do it", "get started", "onboard", "I'm in", "ready", "go ahead"
-If not interested after 4 turns, politely end the call."""
-
-active_greeter: dict[str, dict] = {}
+active_greeter: dict[str, dict] = {}  # kept for call_ended cleanup
 
 
 @app.post("/webhook/greeter")
@@ -129,18 +108,21 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
         active_onboarding.pop(session_id, None)
         return JSONResponse({"status": "ok"})
 
-    # If session already moved to onboarding, route there
+    # Route demo business agent calls to handle_call
+    agent_id = payload.get("agentId") or data.get("agentId", "")
+    if agent_id == AGENTPHONE_AGENT_ID:
+        return await handle_call(request, background_tasks)
+
+    # Once session is in onboarding state, keep routing there
     if session_id in active_onboarding:
         return await handle_onboarding(request, background_tasks)
 
     caller_text = data.get("transcript") or payload.get("text", "")
 
     if session_id not in active_greeter:
-        active_greeter[session_id] = {"history": [], "turns": 0}
+        active_greeter[session_id] = {"turns": 0}
         if not caller_text:
-            # Pure init event — no caller speech yet, AgentPhone plays beginMessage
             return JSONResponse({"text": "", "hangup": False})
-        # Caller already spoke on first hit — fall through and process immediately
 
     if not caller_text:
         return JSONResponse({"text": "", "hangup": False})
@@ -148,41 +130,48 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
     state = active_greeter[session_id]
     state["turns"] += 1
 
-    from google import genai as _genai
-    from google.genai import types as _types
-    from config import GEMINI_API_KEY, GEMINI_MODEL
-    _client = _genai.Client(api_key=GEMINI_API_KEY)
+    SETUP_SIGNALS = ["yes", "set me up", "sign me up", "let's do it", "get started",
+                     "onboard", "i'm in", "ready", "go ahead", "set up", "setup",
+                     "sure", "absolutely", "please", "definitely"]
 
-    history = [
-        _types.Content(role=t["role"], parts=[_types.Part(text=t["parts"][0])])
-        for t in state["history"]
-    ]
-    response = _client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=history + [_types.Content(role="user", parts=[_types.Part(text=caller_text)])],
-        config=_types.GenerateContentConfig(system_instruction=GREETER_SYSTEM_PROMPT),
-    )
-    reply = response.text.strip()
-    print(f"[GREETER] session={session_id[-8:]} turn={state['turns']} caller={caller_text!r} reply={reply!r}")
-
-    state["history"].append({"role": "user", "parts": [caller_text]})
-    state["history"].append({"role": "model", "parts": [reply]})
-
-    if "TRANSFER_NOW" in reply:
-        reply = reply.replace("TRANSFER_NOW", "").strip()
-        # Switch session to onboarding flow in-place — no phone transfer needed
+    if any(s in caller_text.lower() for s in SETUP_SIGNALS):
+        # Seamlessly begin onboarding — same call, no transfer
         active_greeter.pop(session_id, None)
         active_onboarding[session_id] = {
             "history": [{"role": "model", "parts": [ONBOARDING_BEGIN]}],
             "transcript": f"\nAgent: {ONBOARDING_BEGIN}",
             "awaiting_transfer": False,
             "transfer_number": "",
-            "pending_onboarding_begin": True,
         }
-        print(f"[GREETER] Switching session {session_id[-8:]} to onboarding flow")
-        return JSONResponse({"text": f"{reply} {ONBOARDING_BEGIN}", "hangup": False})
+        print(f"[GREETER→ONBOARDING] session={session_id[-8:]} starting onboarding")
+        return JSONResponse({"text": f"Great, let's get you set up! {ONBOARDING_BEGIN}", "hangup": False})
 
-    if state["turns"] >= 5:
+    # Answer questions about LeadSaver
+    from google import genai as _genai
+    from google.genai import types as _types
+    from config import GEMINI_API_KEY, GEMINI_MODEL
+    _client = _genai.Client(api_key=GEMINI_API_KEY)
+
+    PITCH_PROMPT = """You are a friendly sales agent for LeadSaver, an AI receptionist service for small businesses ($49/month).
+LeadSaver answers missed calls 24/7, collects caller info (name, phone, what they need), and emails it to the owner automatically.
+Answer any questions briefly (1-2 sentences). If they seem interested or ready, ask "Ready to get set up?" and wait for confirmation.
+If not interested after 3 exchanges, politely end the call."""
+
+    history = state.get("history", [])
+    response = _client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=[_types.Content(role=t["role"], parts=[_types.Part(text=t["parts"][0])]) for t in history]
+                 + [_types.Content(role="user", parts=[_types.Part(text=caller_text)])],
+        config=_types.GenerateContentConfig(system_instruction=PITCH_PROMPT),
+    )
+    reply = response.text.strip()
+    print(f"[GREETER] session={session_id[-8:]} turn={state['turns']} reply={reply[:80]!r}")
+
+    state.setdefault("history", [])
+    state["history"].append({"role": "user", "parts": [caller_text]})
+    state["history"].append({"role": "model", "parts": [reply]})
+
+    if state["turns"] >= 4:
         active_greeter.pop(session_id, None)
         return JSONResponse({"text": "Thanks for calling LeadSaver! Give us a call back anytime. Have a great day!", "hangup": True})
 
