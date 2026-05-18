@@ -130,7 +130,12 @@ async def handle_greeter(request: Request):
 
     if event == "agent.call_ended":
         active_greeter.pop(session_id, None)
+        active_onboarding.pop(session_id, None)
         return JSONResponse({"status": "ok"})
+
+    # If session already moved to onboarding, route there
+    if session_id in active_onboarding:
+        return await handle_onboarding(request)
 
     if session_id not in active_greeter:
         active_greeter[session_id] = {"history": [], "turns": 0}
@@ -165,10 +170,17 @@ async def handle_greeter(request: Request):
 
     if "TRANSFER_NOW" in reply:
         reply = reply.replace("TRANSFER_NOW", "").strip()
+        # Switch session to onboarding flow in-place — no phone transfer needed
         active_greeter.pop(session_id, None)
-        onboarding_number = os.getenv("AGENTPHONE_ONBOARDING_NUMBER", "+18145272190")
-        print(f"[GREETER] Transferring to {onboarding_number}")
-        return JSONResponse({"text": reply, "action": "transfer", "transferNumber": onboarding_number})
+        active_onboarding[session_id] = {
+            "history": [{"role": "model", "parts": [ONBOARDING_BEGIN]}],
+            "transcript": f"\nAgent: {ONBOARDING_BEGIN}",
+            "awaiting_transfer": False,
+            "transfer_number": "",
+        }
+        print(f"[GREETER] Switching session {session_id[-8:]} to onboarding flow")
+        # Return transfer line + onboarding begin message in sequence
+        return JSONResponse({"text": f"{reply} {ONBOARDING_BEGIN}", "hangup": False})
 
     if state["turns"] >= 5:
         active_greeter.pop(session_id, None)
