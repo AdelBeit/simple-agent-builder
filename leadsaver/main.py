@@ -122,7 +122,7 @@ active_greeter: dict[str, dict] = {}
 
 
 @app.post("/webhook/greeter")
-async def handle_greeter(request: Request):
+async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
     payload = await request.json()
     data = payload.get("data", payload)
     event = payload.get("event") or payload.get("type", "")
@@ -135,7 +135,7 @@ async def handle_greeter(request: Request):
 
     # If session already moved to onboarding, route there
     if session_id in active_onboarding:
-        return await handle_onboarding(request)
+        return await handle_onboarding(request, background_tasks)
 
     if session_id not in active_greeter:
         active_greeter[session_id] = {"history": [], "turns": 0}
