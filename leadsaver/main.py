@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -157,6 +158,7 @@ async def handle_greeter(request: Request):
         config=_types.GenerateContentConfig(system_instruction=GREETER_SYSTEM_PROMPT),
     )
     reply = response.text.strip()
+    print(f"[GREETER] session={session_id[-8:]} turn={state['turns']} caller={caller_text!r} reply={reply!r}")
 
     state["history"].append({"role": "user", "parts": [caller_text]})
     state["history"].append({"role": "model", "parts": [reply]})
@@ -164,7 +166,9 @@ async def handle_greeter(request: Request):
     if "TRANSFER_NOW" in reply:
         reply = reply.replace("TRANSFER_NOW", "").strip()
         active_greeter.pop(session_id, None)
-        return JSONResponse({"text": reply, "action": "transfer"})
+        onboarding_number = os.getenv("AGENTPHONE_ONBOARDING_NUMBER", "+18145272190")
+        print(f"[GREETER] Transferring to {onboarding_number}")
+        return JSONResponse({"text": reply, "action": "transfer", "transferNumber": onboarding_number})
 
     if state["turns"] >= 5:
         active_greeter.pop(session_id, None)
