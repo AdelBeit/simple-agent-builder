@@ -187,6 +187,7 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
     state["transcript"] += f"\nOwner: {caller_text}"
 
     # Detect URL in caller's message — triggers scrape if found
+    scraped_data = None
     url = extract_url(caller_text)
     if url and not state.get("scraped"):
         state["scraped"] = True
