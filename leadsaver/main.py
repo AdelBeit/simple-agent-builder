@@ -6,8 +6,10 @@ from models import (
     init_db, save_lead, mark_form_submitted, get_all_leads,
     save_business, get_business, get_business_by_number, update_business_profile, get_db,
 )
-from agent import get_reply, extract_lead_info, BEGIN_MESSAGE, build_begin_message
-from onboarding import get_onboarding_reply, BEGIN_MESSAGE as ONBOARDING_BEGIN, extract_url
+from gemini import (
+    get_reply, extract_lead_info, BEGIN_MESSAGE, build_begin_message,
+    get_onboarding_reply, ONBOARDING_BEGIN, extract_url,
+)
 from browser_submit import submit_lead_to_form, scrape_business_website
 from agentmail import create_inbox, register_reply_webhook, send_config_summary, send_lead_notification
 from agentphone_provision import provision_business_agent
