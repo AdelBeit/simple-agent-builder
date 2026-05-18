@@ -1,7 +1,7 @@
 {
   "license": "UNLICENSED",
   "scripts": {
-    "dev": "bash -c 'cd leadsaver && source .venv/bin/activate && uvicorn main:app --port 8000'",
+    "dev": "bash -c 'cd leadsaver && source .venv/bin/activate && uvicorn main:app --reload --port 8000'",
     "dev:watch": "bash -c 'cd leadsaver && source .venv/bin/activate && uvicorn main:app --reload --port 8000'",
     "ngrok": "ngrok http 8000 --domain=syenitic-lila-uneffusively.ngrok-free.dev",
     "agentphone": "curl -s -X PATCH https://api.agentphone.ai/v1/agents/cmpa92in80d4djz00jx56l5z2 -H \"Authorization: Bearer sk_live_5XpSYQY6y5hWUDHME4Jc9QmwN4j92xy2\" -H \"Content-Type: application/json\" -d '{\"webhookUrl\": \"https://syenitic-lila-uneffusively.ngrok-free.dev/webhook/call\"}' && echo 'Webhook updated.'",
