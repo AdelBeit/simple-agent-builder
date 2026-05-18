@@ -761,7 +761,9 @@
       // ═══════════════════════════════════════════════════════════════
       const canvas = document.getElementById('three-canvas');
       const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+      camera.position.z = 1000;
+
       const renderer = new THREE.WebGLRenderer({
         canvas: canvas,
         antialias: true,
@@ -770,241 +772,130 @@
 
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      camera.position.z = 50;
 
       // ═══════════════════════════════════════════════════════════════
-      // LIGHTING
+      // WAVE PARTICLES SETUP
       // ═══════════════════════════════════════════════════════════════
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-      scene.add(ambientLight);
+      const SEPARATION = 100;
+      const AMOUNTX = window.innerWidth < 768 ? 30 : 60;
+      const AMOUNTY = window.innerWidth < 768 ? 30 : 60;
 
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-      directionalLight.position.set(10, 10, 10);
-      scene.add(directionalLight);
+      let count = 0;
+      let mouseX = 0, mouseY = 0;
 
-      // ═══════════════════════════════════════════════════════════════
-      // PHONE NODES (Red glowing spheres)
-      // ═══════════════════════════════════════════════════════════════
-      const phoneNodes = [];
-      const phoneGeometry = new THREE.SphereGeometry(0.5, 16, 16);
-      const phoneMaterial = new THREE.MeshBasicMaterial({
-        color: 0xe8321c,
-        transparent: true,
-        opacity: 0.9
-      });
+      const numParticles = AMOUNTX * AMOUNTY;
 
-      const nodeCount = window.innerWidth < 768 ? 15 : 25;
+      const positions = new Float32Array(numParticles * 3);
+      const scales = new Float32Array(numParticles);
 
-      for (let i = 0; i < nodeCount; i++) {
-        const phone = new THREE.Mesh(phoneGeometry, phoneMaterial.clone());
+      let i = 0, j = 0;
 
-        // Random spherical distribution
-        const radius = 30 + Math.random() * 20;
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.random() * Math.PI;
+      for (let ix = 0; ix < AMOUNTX; ix++) {
+        for (let iy = 0; iy < AMOUNTY; iy++) {
+          positions[i] = ix * SEPARATION - ((AMOUNTX * SEPARATION) / 2);
+          positions[i + 1] = 0;
+          positions[i + 2] = iy * SEPARATION - ((AMOUNTY * SEPARATION) / 2);
 
-        phone.position.x = radius * Math.sin(phi) * Math.cos(theta);
-        phone.position.y = radius * Math.sin(phi) * Math.sin(theta);
-        phone.position.z = radius * Math.cos(phi);
+          scales[j] = 1;
 
-        phone.userData = {
-          velocity: new THREE.Vector3(
-            (Math.random() - 0.5) * 0.02,
-            (Math.random() - 0.5) * 0.02,
-            (Math.random() - 0.5) * 0.02
-          ),
-          pulseOffset: Math.random() * Math.PI * 2,
-          captured: false
-        };
-
-        scene.add(phone);
-        phoneNodes.push(phone);
+          i += 3;
+          j++;
+        }
       }
 
-      // ═══════════════════════════════════════════════════════════════
-      // CENTER CAPTURE ELEMENT (Blue torus)
-      // ═══════════════════════════════════════════════════════════════
-      const centerGeometry = new THREE.TorusGeometry(3, 0.8, 16, 100);
-      const centerMaterial = new THREE.MeshStandardMaterial({
-        color: 0x0a1f44,
-        emissive: 0x1a3a6e,
-        emissiveIntensity: 0.5,
-        metalness: 0.8,
-        roughness: 0.2
-      });
-      const centerElement = new THREE.Mesh(centerGeometry, centerMaterial);
-      scene.add(centerElement);
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('scale', new THREE.BufferAttribute(scales, 1));
 
-      // ═══════════════════════════════════════════════════════════════
-      // PARTICLE FIELD
-      // ═══════════════════════════════════════════════════════════════
-      const particleCount = window.innerWidth < 768 ? 100 : 300;
-      const particlesGeometry = new THREE.BufferGeometry();
-      const particlePositions = new Float32Array(particleCount * 3);
+      // Custom shader material with brand colors
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          color: { value: new THREE.Color(0xe8321c) }, // LeadSaver red
+        },
+        vertexShader: `
+          attribute float scale;
+          varying vec3 vColor;
 
-      for (let i = 0; i < particleCount * 3; i += 3) {
-        particlePositions[i] = (Math.random() - 0.5) * 100;
-        particlePositions[i + 1] = (Math.random() - 0.5) * 100;
-        particlePositions[i + 2] = (Math.random() - 0.5) * 100;
-      }
+          void main() {
+            vColor = vec3(0.91, 0.19, 0.11); // Red base color
 
-      particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-      const particlesMaterial = new THREE.PointsMaterial({
-        color: 0xd0ddf5,
-        size: 0.1,
+            // Mix in blue gradient based on position
+            float blueMix = (position.y + 300.0) / 600.0;
+            vColor = mix(vColor, vec3(0.04, 0.12, 0.27), blueMix * 0.6);
+
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = scale * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vColor;
+
+          void main() {
+            if (length(gl_PointCoord - vec2(0.5, 0.5)) > 0.475) discard;
+
+            // Soft glow effect
+            float dist = length(gl_PointCoord - vec2(0.5));
+            float alpha = 1.0 - smoothstep(0.3, 0.475, dist);
+
+            gl_FragColor = vec4(vColor, alpha * 0.9);
+          }
+        `,
         transparent: true,
-        opacity: 0.6
+        depthTest: false,
+        blending: THREE.AdditiveBlending
       });
-      const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+
+      const particles = new THREE.Points(geometry, material);
       scene.add(particles);
 
       // ═══════════════════════════════════════════════════════════════
-      // CONNECTION LINES
+      // MOUSE INTERACTION
       // ═══════════════════════════════════════════════════════════════
-      const connections = [];
-      const maxConnections = 3;
+      document.addEventListener('mousemove', (event) => {
+        mouseX = event.clientX - window.innerWidth / 2;
+        mouseY = event.clientY - window.innerHeight / 2;
+      });
 
-      function createConnection(fromNode) {
-        const points = [
-          fromNode.position.clone(),
-          new THREE.Vector3(0, 0, 0)
-        ];
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        const material = new THREE.LineBasicMaterial({
-          color: 0xf5b800,
-          transparent: true,
-          opacity: 0
-        });
-        const line = new THREE.Line(geometry, material);
-        line.userData = {
-          progress: 0,
-          fromNode: fromNode,
-          active: true
-        };
-        scene.add(line);
-        connections.push(line);
-        return line;
-      }
-
-      // ═══════════════════════════════════════════════════════════════
-      // ANIMATION STATE
-      // ═══════════════════════════════════════════════════════════════
-      const clock = new THREE.Clock();
-      let captureTimer = 0;
-      const captureInterval = 2.5; // seconds
-      let mouseX = 0;
-      let mouseY = 0;
-
-      // Mouse parallax (desktop only)
-      if (window.innerWidth > 768) {
-        document.addEventListener('mousemove', (e) => {
-          mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-          mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
-        });
-      }
+      document.addEventListener('touchmove', (event) => {
+        if (event.touches.length === 1) {
+          event.preventDefault();
+          mouseX = event.touches[0].pageX - window.innerWidth / 2;
+          mouseY = event.touches[0].pageY - window.innerHeight / 2;
+        }
+      }, { passive: false });
 
       // ═══════════════════════════════════════════════════════════════
       // ANIMATION LOOP
       // ═══════════════════════════════════════════════════════════════
       function animate() {
         requestAnimationFrame(animate);
-        const delta = clock.getDelta();
-        const elapsed = clock.getElapsedTime();
 
-        // Update phone nodes
-        phoneNodes.forEach((phone, i) => {
-          if (!phone.userData.captured) {
-            // Floating motion
-            phone.position.x += phone.userData.velocity.x;
-            phone.position.y += phone.userData.velocity.y;
-            phone.position.z += phone.userData.velocity.z;
+        count += 0.1;
 
-            // Boundary check
-            const maxDist = 40;
-            if (phone.position.length() > maxDist) {
-              phone.userData.velocity.multiplyScalar(-1);
-            }
+        let i = 0, j = 0;
 
-            // Pulsing glow
-            const pulse = Math.sin(elapsed * 2 + phone.userData.pulseOffset) * 0.3 + 0.7;
-            phone.material.opacity = pulse;
-          }
-        });
+        for (let ix = 0; ix < AMOUNTX; ix++) {
+          for (let iy = 0; iy < AMOUNTY; iy++) {
+            // Create beautiful wave patterns
+            positions[i + 1] = (Math.sin((ix + count) * 0.3) * 50) +
+                               (Math.sin((iy + count) * 0.5) * 50);
 
-        // Rotate center element
-        centerElement.rotation.x += delta * 0.2;
-        centerElement.rotation.y += delta * 0.3;
+            scales[j] = (Math.sin((ix + count) * 0.3) + 1) * 20 +
+                        (Math.sin((iy + count) * 0.5) + 1) * 20;
 
-        // Drift particles
-        particles.rotation.y += delta * 0.05;
-
-        // Camera parallax
-        if (window.innerWidth > 768) {
-          camera.position.x += (mouseX * 5 - camera.position.x) * 0.05;
-          camera.position.y += (mouseY * 5 - camera.position.y) * 0.05;
-          camera.lookAt(scene.position);
-        } else {
-          // Gentle camera rotation on mobile
-          camera.position.x = Math.sin(elapsed * 0.1) * 5;
-          camera.position.y = Math.cos(elapsed * 0.15) * 3;
-          camera.lookAt(scene.position);
-        }
-
-        // Capture events
-        captureTimer += delta;
-        if (captureTimer > captureInterval && connections.length < maxConnections) {
-          captureTimer = 0;
-          const availableNodes = phoneNodes.filter(p => !p.userData.captured);
-          if (availableNodes.length > 0) {
-            const randomNode = availableNodes[Math.floor(Math.random() * availableNodes.length)];
-            randomNode.userData.captured = true;
-            createConnection(randomNode);
+            i += 3;
+            j++;
           }
         }
 
-        // Update connections
-        connections.forEach((line, index) => {
-          if (line.userData.active) {
-            line.userData.progress += delta * 0.5;
+        geometry.attributes.position.needsUpdate = true;
+        geometry.attributes.scale.needsUpdate = true;
 
-            if (line.userData.progress < 1) {
-              // Line drawing in
-              line.material.opacity = Math.min(line.userData.progress, 0.8);
-            } else if (line.userData.progress < 2) {
-              // Node moves toward center and changes color
-              const node = line.userData.fromNode;
-              node.position.lerp(new THREE.Vector3(0, 0, 0), delta * 0.5);
-              const colorLerp = (line.userData.progress - 1);
-              node.material.color.lerp(new THREE.Color(0x0a1f44), colorLerp);
-              node.material.opacity = 1 - colorLerp;
-            } else {
-              // Remove line and respawn node
-              scene.remove(line);
-              const node = line.userData.fromNode;
-
-              // Respawn at new position
-              const radius = 30 + Math.random() * 20;
-              const theta = Math.random() * Math.PI * 2;
-              const phi = Math.random() * Math.PI;
-
-              node.position.x = radius * Math.sin(phi) * Math.cos(theta);
-              node.position.y = radius * Math.sin(phi) * Math.sin(theta);
-              node.position.z = radius * Math.cos(phi);
-              node.material.color.setHex(0xe8321c);
-              node.material.opacity = 0.9;
-              node.userData.captured = false;
-
-              connections.splice(index, 1);
-            }
-
-            // Update line geometry
-            const points = [
-              line.userData.fromNode.position.clone(),
-              new THREE.Vector3(0, 0, 0)
-            ];
-            line.geometry.setFromPoints(points);
-          }
-        });
+        // Smooth camera follow
+        camera.position.x += (mouseX * 0.5 - camera.position.x) * 0.05;
+        camera.position.y += (-mouseY * 0.5 - camera.position.y) * 0.05;
+        camera.lookAt(scene.position);
 
         renderer.render(scene, camera);
       }
