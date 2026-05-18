@@ -6,8 +6,16 @@ _client = MossClient(MOSS_PROJECT_ID, MOSS_PROJECT_KEY)
 _loaded_indexes: set[str] = set()
 
 
-def _index_name(business_id: int) -> str:
-    return f"business-{business_id}"
+def _index_name(business_id: int, name: str = "", email: str = "") -> str:
+    slug = name.lower().replace(" ", "-").replace("'", "")
+    # Add email prefix (without domain) for uniqueness
+    email_prefix = email.split("@")[0] if email else ""
+    if email_prefix:
+        slug = f"{slug}-{email_prefix}"
+    # Sanitize to alphanumeric + dash only
+    import re
+    slug = re.sub(r"[^a-z0-9-]", "", slug)[:50]
+    return f"{slug}-{business_id}" if slug else f"business-{business_id}"
 
 
 async def _ensure_loaded(index_name: str):
@@ -19,9 +27,9 @@ async def _ensure_loaded(index_name: str):
             pass
 
 
-async def store_profile(business_id: int, profile_text: str):
+async def store_profile(business_id: int, profile_text: str, name: str = "", email: str = ""):
     """Index a business profile in Moss. Creates or replaces the index."""
-    index_name = _index_name(business_id)
+    index_name = _index_name(business_id, name, email)
 
     # Chunk by paragraph — better retrieval than one blob
     paragraphs = [p.strip() for p in profile_text.split("\n\n") if p.strip()]
@@ -48,9 +56,9 @@ async def store_profile(business_id: int, profile_text: str):
         return False
 
 
-async def query_profile(business_id: int, query: str, top_k: int = 3) -> str:
+async def query_profile(business_id: int, query: str, top_k: int = 3, name: str = "", email: str = "") -> str:
     """Query Moss for the most relevant chunks for a given caller query."""
-    index_name = _index_name(business_id)
+    index_name = _index_name(business_id, name, email)
     await _ensure_loaded(index_name)
 
     try:
