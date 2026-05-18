@@ -107,16 +107,22 @@ Your receptionist is live and ready to take calls for {name}. To keep it active 
 <h3 style="margin-top:20px; font-size:15px;">Services</h3>
 <ul style="margin-top:4px;">{services_li}</ul>
 <p style="margin-top:24px; color:#555;">Something off? Just reply to this email — we'll fix it right away.</p>
-<div style="margin-top:28px; padding:16px; background:#f8f9fb; border-radius:8px; border-left:4px solid #0a1f44;">
-  <p style="margin:0 0 6px 0; font-size:15px; font-weight:600; color:#0a1f44;">Your AI receptionist for {name} is live.</p>
-  <p style="margin:0 0 16px 0; font-size:14px; color:#555; line-height:1.5;">
-    It will answer missed calls, collect lead info, and submit it to your contact form automatically.
-    Subscribe to keep it running — <strong>$49/month</strong>, no setup fees, cancel anytime.
-  </p>
-  <a href="{STRIPE_PAYMENT_LINK}" style="background:#0a1f44; color:#fff; padding:12px 24px; border-radius:6px; text-decoration:none; font-weight:600; font-size:15px;">
-    Activate your receptionist — $49/mo
-  </a>
-</div>"""
+<table cellpadding="0" cellspacing="0" width="100%" style="margin-top:28px; background:#f8f9fb; border-radius:8px; border-left:4px solid #0a1f44;">
+  <tr><td style="padding:16px;">
+    <p style="margin:0 0 6px 0; font-size:15px; font-weight:600; color:#0a1f44;">Your AI receptionist for {name} is live.</p>
+    <p style="margin:0 0 16px 0; font-size:14px; color:#555; line-height:1.5;">
+      It will answer missed calls, collect lead info, and submit it to your contact form automatically.
+      Subscribe to keep it running — <strong>$49/month</strong>, no setup fees, cancel anytime.
+    </p>
+    <table cellpadding="0" cellspacing="0"><tr>
+      <td style="background:#0a1f44; border-radius:6px; text-align:center;">
+        <a href="{STRIPE_PAYMENT_LINK}" style="display:inline-block; padding:12px 24px; color:#fff; font-weight:600; font-size:15px; text-decoration:none; white-space:nowrap;">
+          Activate your receptionist &mdash; $49/mo
+        </a>
+      </td>
+    </tr></table>
+  </td></tr>
+</table>"""
 
     html = _html_wrap(f"Your AI receptionist is ready — {name} ✅", body_html)
 
