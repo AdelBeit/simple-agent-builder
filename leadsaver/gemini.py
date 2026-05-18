@@ -192,7 +192,8 @@ Return only valid JSON, no markdown.
 
 Transcript:
 {transcript}"""
-    response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+    response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt,
+        config=types.GenerateContentConfig(thinking_config=types.ThinkingConfig(thinking_budget=0)))
     try:
         return json.loads(response.text.strip())
     except Exception:

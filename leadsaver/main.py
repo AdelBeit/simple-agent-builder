@@ -157,7 +157,8 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
         # Use Gemini to interpret yes/no naturally
         from google import genai as _g; from google.genai import types as _t; from config import GEMINI_API_KEY, GEMINI_MODEL
         _gc = _g.Client(api_key=GEMINI_API_KEY)
-        _r = _gc.models.generate_content(model=GEMINI_MODEL, contents=f'Is this person agreeing, saying yes, or wanting to proceed? Reply only YES or NO.\n\n"{caller_text}"')
+        _r = _gc.models.generate_content(model=GEMINI_MODEL, contents=f'Is this person agreeing, saying yes, or wanting to proceed? Reply only YES or NO.\n\n"{caller_text}"',
+            config=_t.GenerateContentConfig(thinking_config=_t.ThinkingConfig(thinking_budget=0)))
         if "YES" in _r.text.upper():
             active_onboarding.pop(session_id, None)
             business = get_business_by_number(state["transfer_number"])
@@ -455,7 +456,7 @@ async def process_email_reply(payload: dict):
     print(f"[EMAIL] Owner reply for {business['name']}: {body[:100]}")
 
     # Use Gemini to extract what the owner wants to change
-    from agent import client as gemini_client
+    from gemini import client as gemini_client
     from config import GEMINI_MODEL
     prompt = f"""The owner of {business['name']} replied to their LeadSaver config email with:
 
@@ -465,7 +466,9 @@ Extract any corrections or updates as JSON with the same fields as the business 
 name, phone, website_url, contact_form_url, hours, services (list).
 Only include fields they actually mentioned changing. Return valid JSON only, no markdown."""
 
-    response = gemini_client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+    from google.genai import types as _gt
+    response = gemini_client.models.generate_content(model=GEMINI_MODEL, contents=prompt,
+        config=_gt.GenerateContentConfig(thinking_config=_gt.ThinkingConfig(thinking_budget=0)))
     try:
         import json
         updates = json.loads(response.text.strip())

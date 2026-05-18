@@ -1,6 +1,6 @@
 import httpx
 from config import AGENT_PHONE_KEY, NGROK_DOMAIN, DEMO_MODE, AGENTPHONE_AGENT_ID, AGENTPHONE_ONBOARDING_NUMBER
-from agent import _build_system_prompt, build_begin_message
+from gemini import _build_receptionist_prompt as _build_system_prompt, build_begin_message
 
 AGENTPHONE_BASE = "https://api.agentphone.ai/v1"
 
