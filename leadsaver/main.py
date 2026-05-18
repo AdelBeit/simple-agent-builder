@@ -152,7 +152,7 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
             "transfer_number": "",
         }
         print(f"[GREETER→ONBOARDING] session={session_id[-8:]} starting onboarding")
-        return JSONResponse({"text": f"Great, let's get you set up! {ONBOARDING_BEGIN}", "hangup": False})
+        return JSONResponse({"text": "Great, let's get you set up!", "hangup": False})
 
     # Answer questions about LeadSaver
     from google import genai as _genai
@@ -234,7 +234,7 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
                 "caller_number": data.get("from") or payload.get("from", ""),
             }
             print(f"[ONBOARDING→DEMO] session={session_id[-8:]} switching to business receptionist")
-            return JSONResponse({"text": f"Here's your receptionist! {demo_begin}", "hangup": False})
+            return JSONResponse({"text": demo_begin, "hangup": False})
         else:
             active_onboarding.pop(session_id, None)
             return JSONResponse({"text": "No problem! We'll send a summary to your email shortly — your receptionist is live and ready to take calls. Have a great day!", "hangup": True})
