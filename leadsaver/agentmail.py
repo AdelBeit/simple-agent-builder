@@ -18,17 +18,22 @@ def _slugify(name: str) -> str:
 
 def create_inbox(business_name: str) -> dict:
     """Create an AgentMail inbox for a business. Returns {id, email}."""
+    import time
     username = _slugify(business_name)
-    resp = httpx.post(
-        f"{AGENTMAIL_BASE_URL}/inboxes",
-        headers=_headers(),
-        json={"username": username, "domain": AGENTMAIL_DOMAIN, "display_name": business_name},
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    inbox_id = data.get("inbox_id") or data.get("email")
-    email = data.get("email") or f"{username}@{AGENTMAIL_DOMAIN}"
-    return {"id": inbox_id, "email": email}
+    for attempt, suffix in enumerate(["", f"-{int(time.time()) % 10000}"]):
+        resp = httpx.post(
+            f"{AGENTMAIL_BASE_URL}/inboxes",
+            headers=_headers(),
+            json={"username": f"{username}{suffix}", "domain": AGENTMAIL_DOMAIN, "display_name": business_name},
+        )
+        if resp.status_code == 403 and "taken" in resp.text.lower() and attempt == 0:
+            continue
+        resp.raise_for_status()
+        data = resp.json()
+        inbox_id = data.get("inbox_id") or data.get("email")
+        email = data.get("email") or f"{username}{suffix}@{AGENTMAIL_DOMAIN}"
+        return {"id": inbox_id, "email": email}
+    resp.raise_for_status()  # re-raise if both attempts failed
 
 
 def register_reply_webhook(inbox_id: str) -> bool:

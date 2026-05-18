@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from models import (
     init_db, save_lead, mark_form_submitted, get_all_leads,
-    save_business, get_business, get_business_by_number, update_business_profile,
+    save_business, get_business, get_business_by_number, update_business_profile, get_db,
 )
 from agent import get_reply, extract_lead_info, BEGIN_MESSAGE, build_begin_message
 from onboarding import get_onboarding_reply, BEGIN_MESSAGE as ONBOARDING_BEGIN, extract_url
@@ -364,7 +364,6 @@ def list_leads():
 # ---------------------------------------------------------------------------
 @app.get("/businesses")
 def list_businesses():
-    from models import get_db
     conn = get_db()
     rows = conn.execute("SELECT * FROM businesses ORDER BY created_at DESC").fetchall()
     conn.close()
@@ -420,7 +419,6 @@ async def complete_onboarding(session_id: str, data: dict):
         inbox_id = inbox["id"]
         inbox_email = inbox["email"]
         print(f"[ONBOARDING] Inbox created: {inbox_email}")
-        from models import get_db
         conn = get_db()
         conn.execute("UPDATE businesses SET inbox_id=?, inbox_email=? WHERE id=?", (inbox_id, inbox_email, biz_id))
         conn.commit()

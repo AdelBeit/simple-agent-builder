@@ -43,7 +43,12 @@ async def store_profile(business_id: int, profile_text: str, name: str = "", ema
 
     try:
         indexes = await _client.list_indexes()
-        existing = [ix.get("name") or ix.get("id") for ix in (indexes or [])]
+        # list_indexes returns IndexInfo objects — extract name via attribute or dict access
+        def _ix_name(ix):
+            if hasattr(ix, "name"): return ix.name
+            if hasattr(ix, "get"): return ix.get("name") or ix.get("id")
+            return str(ix)
+        existing = [_ix_name(ix) for ix in (indexes or [])]
         if index_name in existing:
             await _client.add_docs(index_name, docs, MutationOptions(upsert=True))
         else:
