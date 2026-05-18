@@ -1,5 +1,5 @@
 import httpx
-from config import AGENT_PHONE_KEY, NGROK_DOMAIN
+from config import AGENT_PHONE_KEY, NGROK_DOMAIN, DEMO_MODE, AGENTPHONE_AGENT_ID, AGENTPHONE_ONBOARDING_NUMBER
 from agent import _build_system_prompt, build_begin_message
 
 AGENTPHONE_BASE = "https://api.agentphone.ai/v1"
@@ -14,6 +14,31 @@ def provision_business_agent(business: dict) -> dict:
     Creates an AgentPhone agent + phone number for a newly onboarded business.
     Returns {"agent_id": str, "phone_number": str} or raises on failure.
     """
+
+    if DEMO_MODE:
+        # DEMO MODE: Reuses the existing onboarding number (+18145272190) instead of
+        # provisioning a new number per business. Avoids per-number charges during testing.
+        # The existing demo agent is patched with this business's prompt so it answers correctly.
+        # TO RESTORE PRODUCTION BEHAVIOR: set DEMO_MODE=false in .env
+        try:
+            httpx.patch(
+                f"{AGENTPHONE_BASE}/agents/{AGENTPHONE_AGENT_ID}",
+                headers=_headers(),
+                json={
+                    "systemPrompt": _build_system_prompt(business),
+                    "beginMessage": build_begin_message(business),
+                },
+                timeout=15,
+            )
+            print(f"[PROVISION] Demo mode: patched agent {AGENTPHONE_AGENT_ID} for {business.get('name')}")
+        except Exception as e:
+            print(f"[PROVISION] Demo mode agent patch failed (non-fatal): {e}")
+        return {"agent_id": AGENTPHONE_AGENT_ID, "phone_number": AGENTPHONE_ONBOARDING_NUMBER}
+
+    # --- PRODUCTION PATH ---
+    # Only runs when DEMO_MODE=false. Provisions a real per-business agent and number.
+    # Each number costs money — do not run during testing.
+
     system_prompt = _build_system_prompt(business)
     begin_message = build_begin_message(business)
     webhook_url = f"https://{NGROK_DOMAIN}/webhook/call"
