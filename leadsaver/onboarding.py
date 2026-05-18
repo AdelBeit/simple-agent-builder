@@ -87,7 +87,10 @@ def get_onboarding_reply(history: list[dict], message: str,
     response = client.models.generate_content(
         model=GEMINI_MODEL,
         contents=contents,
-        config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT),
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        ),
     )
 
     reply = response.text.strip()

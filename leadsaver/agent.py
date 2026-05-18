@@ -74,7 +74,10 @@ def get_reply(conversation_history: list[dict], new_message: str, business: dict
     response = client.models.generate_content(
         model=GEMINI_MODEL,
         contents=history + [types.Content(role="user", parts=[types.Part(text=user_text)])],
-        config=types.GenerateContentConfig(system_instruction=system_prompt),
+        config=types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        ),
     )
 
     reply = response.text.strip()
