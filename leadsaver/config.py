@@ -35,6 +35,10 @@ BUSINESS = {
 }
 
 # Stripe
+# Moss
+MOSS_PROJECT_ID = os.getenv("MOSS_PROJECT_ID")
+MOSS_PROJECT_KEY = os.getenv("MOSS_PROJECT_KEY")
+
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_PAYMENT_LINK = os.getenv("STRIPE_PAYMENT_LINK", "https://buy.stripe.com/leadsaver")
 
