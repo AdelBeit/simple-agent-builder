@@ -77,7 +77,7 @@ async def handle_call(request: Request, background_tasks: BackgroundTasks):
     moss_context = ""
     business = state.get("business")
     if business and business.get("id"):
-        moss_context = await query_profile(business["id"], caller_text)
+        moss_context = await query_profile(business["id"], caller_text, name=business.get("name", ""), email=business.get("owner_email", ""))
 
     reply, call_complete = get_reply(state["history"], caller_text, business=business, caller_number=state.get("caller_number"), moss_context=moss_context)
 
@@ -393,7 +393,7 @@ async def complete_onboarding(session_id: str, data: dict):
         if profile_text:
             update_business_profile(biz_id, profile_text)
             print(f"[ONBOARDING] Profile enriched ({len(profile_text)} chars)")
-            await store_profile(biz_id, profile_text)
+            await store_profile(biz_id, profile_text, name=data.get("name", ""), email=data.get("owner_email", ""))
 
     # 4. Send config summary email to owner
     business = get_business(biz_id)
