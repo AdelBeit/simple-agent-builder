@@ -8,7 +8,7 @@ from models import (
 )
 from gemini import (
     get_reply, extract_lead_info, BEGIN_MESSAGE, build_begin_message,
-    get_onboarding_reply, ONBOARDING_BEGIN, extract_url,
+    get_onboarding_reply, ONBOARDING_BEGIN, extract_url, WEBSITE_TAG,
 )
 from browser_submit import submit_lead_to_form, scrape_business_website
 from agentmail import create_inbox, register_reply_webhook, send_config_summary, send_lead_notification
@@ -186,9 +186,6 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
 
     state["transcript"] += f"\nOwner: {caller_text}"
 
-    # Inject pending scraped data from previous turn's background scrape
-    scraped_data = state.pop("pending_scraped_data", None)
-
     # Detect URL in caller's message — triggers scrape if found
     url = extract_url(caller_text)
     if url and not state.get("scraped"):
@@ -209,21 +206,25 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
     if not reply:
         reply = "Sorry, could you say that again?"
 
-    # If Gemini emitted a [WEBSITE] tag, extract URL and trigger scrape on next turn
+    # If Gemini emitted a [WEBSITE] tag, extract URL and scrape immediately (0.13s with BS4)
     if not state.get("scraped") and not state.get("scraping_in_progress"):
         gemini_url = extract_url(reply)
         if gemini_url:
             state["scraped"] = True
-            state["scraping_in_progress"] = True
             state["website_url"] = gemini_url
-            print(f"[FLOW] Gemini identified URL: {gemini_url}")
-            # Run scrape and inject on next turn via background-like pattern
-            import asyncio
-            async def _scrape_and_update():
-                sd = await scrape_business_website(gemini_url)
-                state["scraping_in_progress"] = False
-                state["pending_scraped_data"] = sd or f"(Could not scrape {gemini_url})"
-            asyncio.create_task(_scrape_and_update())
+            print(f"[FLOW] Gemini identified URL: {gemini_url}, scraping...")
+            sd = await scrape_business_website(gemini_url)
+            # Inject scraped data into the current reply by re-running Gemini with it
+            if sd:
+                reply2, business_data2 = get_onboarding_reply(
+                    state["history"] + [{"role": "model", "parts": [reply]}],
+                    "[System: website data loaded]",
+                    scraped_data=sd,
+                )
+                if reply2:
+                    reply = WEBSITE_TAG.sub('', reply2).strip()
+                    if business_data2:
+                        business_data = business_data2
 
     # Strip [WEBSITE] tag — never spoken aloud
     from gemini import WEBSITE_TAG

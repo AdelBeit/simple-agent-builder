@@ -80,13 +80,16 @@ def gemini(prompt_or_contents, system: str | None = None) -> str:
 
 def extract_url(text: str) -> str | None:
     """Extracts a typed URL or a [WEBSITE]...[/WEBSITE] tag Gemini emits for spoken URLs."""
-    m = URL_PATTERN.search(text)
-    if m:
-        url = m.group(0).rstrip('.,)')
-        return url if url.startswith('http') else 'http://' + url
+    # Check structured tag first — avoids [/WEBSITE] being sucked into regex match
     m = WEBSITE_TAG.search(text)
     if m:
         url = m.group(1).strip()
+        return url if url.startswith('http') else 'http://' + url
+    # Strip any leftover tags before regex search
+    clean = WEBSITE_TAG.sub('', text)
+    m = URL_PATTERN.search(clean)
+    if m:
+        url = m.group(0).rstrip('.,)[')
         return url if url.startswith('http') else 'http://' + url
     return None
 
