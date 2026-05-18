@@ -56,7 +56,7 @@ def build_begin_message(business: dict, caller_number: str = "") -> str:
 BEGIN_MESSAGE = build_begin_message(BUSINESS)
 
 
-def get_reply(conversation_history: list[dict], new_message: str, business: dict | None = None, caller_number: str = "") -> tuple[str, bool]:
+def get_reply(conversation_history: list[dict], new_message: str, business: dict | None = None, caller_number: str = "", moss_context: str = "") -> tuple[str, bool]:
     """Returns (reply_text, call_complete). Uses DB business if provided, else falls back to config."""
     biz = business or BUSINESS
     system_prompt = _build_system_prompt(biz, caller_number)
@@ -66,9 +66,14 @@ def get_reply(conversation_history: list[dict], new_message: str, business: dict
         for turn in conversation_history
     ]
 
+    # Inject Moss context as additional knowledge for this turn
+    user_text = new_message
+    if moss_context:
+        user_text = f"{new_message}\n\n[Relevant business info]: {moss_context}"
+
     response = client.models.generate_content(
         model=GEMINI_MODEL,
-        contents=history + [types.Content(role="user", parts=[types.Part(text=new_message)])],
+        contents=history + [types.Content(role="user", parts=[types.Part(text=user_text)])],
         config=types.GenerateContentConfig(system_instruction=system_prompt),
     )
 
