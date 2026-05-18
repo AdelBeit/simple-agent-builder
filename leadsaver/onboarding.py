@@ -122,9 +122,12 @@ def get_onboarding_reply(history: list[dict], message: str,
 
     if DONE_SIGNAL in reply:
         try:
-            json_str = reply[reply.index("{"):reply.rindex("}") + 1]
+            json_start = reply.index("{")
+            json_str = reply[json_start:reply.rindex("}") + 1]
             data = json.loads(json_str)
-            return reply, data.get("business")
+            # Strip the JSON from the spoken reply — only the natural language gets read aloud
+            spoken_reply = reply[:json_start].strip()
+            return spoken_reply, data.get("business")
         except Exception:
             pass
 
