@@ -34,6 +34,9 @@ BUSINESS = {
     ],
 }
 
+# Demo mode — reuses existing numbers to avoid per-number charges during testing
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+
 # Stripe
 # Moss
 MOSS_PROJECT_ID = os.getenv("MOSS_PROJECT_ID")
