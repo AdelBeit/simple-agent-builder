@@ -113,7 +113,7 @@ Your job:
 - If they ask about pricing → $49/month flat, no setup fees
 - If they ask how it works → "We set up an AI receptionist for your business in 2 minutes. It answers missed calls, collects lead info, and emails it to you automatically."
 - Keep every response to 1-2 sentences
-- When ready to transfer: "Let me connect you with our setup team — takes about 2 minutes!" then TRANSFER_NOW
+- When ready to transfer: "Let me connect you with our onboarding team — takes about 2 minutes!" then TRANSFER_NOW
 
 Transfer signals: "yes", "set me up", "sign me up", "let's do it", "get started", "onboard", "I'm in", "ready", "go ahead"
 If not interested after 4 turns, politely end the call."""
@@ -179,8 +179,10 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
             "transfer_number": "",
         }
         print(f"[GREETER] Switching session {session_id[-8:]} to onboarding flow")
-        # Small pause between greeter sign-off and onboarding begin
-        return JSONResponse({"text": f"{reply} ... {ONBOARDING_BEGIN}", "hangup": False})
+        # 1.5s pause so TTS finishes the sign-off before onboarding begin plays
+        import asyncio
+        await asyncio.sleep(1.5)
+        return JSONResponse({"text": f"{reply} {ONBOARDING_BEGIN}", "hangup": False})
 
     if state["turns"] >= 5:
         active_greeter.pop(session_id, None)
