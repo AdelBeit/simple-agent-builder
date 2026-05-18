@@ -258,8 +258,7 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
         # Provision agent synchronously so we have the number for the transfer offer
         agent_number = ""
         try:
-            from agentphone_provision import provision_business_agent
-            provisioned = provision_business_agent(business_data)
+            provisioned = await provision_business_agent(business_data)
             agent_number = provisioned["phone_number"]
             business_data["agentphone_agent_id"] = provisioned["agent_id"]
             business_data["agentphone_number"] = agent_number
@@ -483,7 +482,7 @@ async def complete_onboarding(session_id: str, data: dict):
     else:
         # HTTP chat path — provision here
         try:
-            provisioned = provision_business_agent(get_business(biz_id))
+            provisioned = await provision_business_agent(get_business(biz_id))
             agent_id = provisioned["agent_id"]
             agent_number = provisioned["phone_number"]
             conn = get_db()
