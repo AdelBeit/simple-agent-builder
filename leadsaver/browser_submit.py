@@ -32,11 +32,9 @@ async def submit_lead_to_form(name: str, phone: str, email: str, service: str,
 
 
 async def scrape_business_website(url: str) -> str:
-    """Fetch a business website and extract a plain-text profile summary."""
-    import httpx
+    """Fetch a business website and return clean text using BeautifulSoup only."""
+    import httpx, re
     from bs4 import BeautifulSoup
-    from google import genai as _genai
-    from config import GEMINI_API_KEY, GEMINI_MODEL
 
     try:
         if not url.startswith("http"):
@@ -48,33 +46,26 @@ async def scrape_business_website(url: str) -> str:
         soup = BeautifulSoup(resp.text, "html.parser")
         for tag in soup(["script", "style", "nav", "footer", "head"]):
             tag.decompose()
-        raw_text = soup.get_text(separator="\n", strip=True)
-        raw_text = "\n".join(line for line in raw_text.splitlines() if line.strip())[:8000]
 
-        client_g = _genai.Client(api_key=GEMINI_API_KEY)
-        prompt = f"""From this website text, extract a business profile summary with:
-- Business name and tagline
-- Services offered (list)
-- Business hours
-- Phone number and address
-- Email address (if found anywhere on the page) — label as "Email:"
-- Contact form URL — if a contact form exists on this page ({url}), the contact form URL is {url}#contact unless a different URL is explicitly mentioned. Label as "Contact Form URL:"
-- Any pricing info
+        # Extract emails
+        emails = list(set(re.findall(r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}', resp.text)))
 
-Website text:
-{raw_text}
+        # Check for contact form
+        has_form = bool(soup.find("form")) or bool(soup.find(id=re.compile(r'contact', re.I)))
+        contact_form_url = f"{url}#contact" if has_form else ""
 
-Return plain text, no markdown."""
+        # Clean text
+        raw = soup.get_text(separator="\n", strip=True)
+        lines = [l.strip() for l in raw.splitlines() if l.strip()]
+        text = "\n".join(lines[:150])  # first 150 lines covers most business info
 
-        from google.genai import types as _types
-        response = client_g.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=prompt,
-            config=_types.GenerateContentConfig(
-                thinking_config=_types.ThinkingConfig(thinking_budget=0)
-            ),
-        )
-        return response.text.strip()
+        result = text
+        if emails:
+            result += f"\n\nEmail: {emails[0]}"
+        if contact_form_url:
+            result += f"\nContact Form URL: {contact_form_url}"
+
+        return result
 
     except Exception as e:
         print(f"[SCRAPE] Failed for {url}: {e}")
