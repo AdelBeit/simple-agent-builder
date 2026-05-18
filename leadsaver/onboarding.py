@@ -82,27 +82,30 @@ DONE_SIGNAL = '"done": true'
 URL_PATTERN = re.compile(r'https?://[^\s]+|localhost:[0-9]+[^\s]*', re.IGNORECASE)
 
 # Spoken URL patterns — STT transcribes URLs as words
-# e.g. "localhost colon 3100" or "localhost colon thirty one hundred"
+# e.g. "localhost colon 3100", "localhost colon thirty one hundred", "almost phone thirty one hundred"
 _SPOKEN_PORT_MAP = {
-    "thirty one hundred": "3100", "thirty one zero zero": "3100",
+    "thirty one hundred": "3100", "thirty one zero zero": "3100", "thirty-one hundred": "3100",
     "thirty one oh one": "3101", "thirty one zero one": "3101",
     "three thousand": "3000", "three zero zero zero": "3000",
     "eight thousand": "8000", "eighty hundred": "8000",
     "three thousand ten": "3010", "thirty ten": "3010",
 }
-_SPOKEN_URL_PATTERN = re.compile(
-    r'localhost\s+colon\s+(\d+|' + '|'.join(re.escape(k) for k in _SPOKEN_PORT_MAP) + r')',
-    re.IGNORECASE
-)
+
+# Broader localhost aliases STT might produce
+_LOCALHOST_ALIASES = r'(?:localhost|local\s*host|local\s*host\s*dot\s*com|almost\s*phone|local\s*server|my\s*local)'
 
 
 def _normalize_spoken_url(text: str) -> str:
     """Convert spoken URL forms to typed form before regex matching."""
     result = text
+    # Normalize common STT artifacts before port map
+    result = re.sub(r'localhost\s+dot\s+com', 'localhost', result, flags=re.IGNORECASE)
     for spoken, port in _SPOKEN_PORT_MAP.items():
         result = re.sub(re.escape(spoken), port, result, flags=re.IGNORECASE)
-    # Handle "colon", "con", "column" as separator between localhost and port
-    result = re.sub(r'localhost\s+(?:colon|con|column)\s+', 'localhost:', result, flags=re.IGNORECASE)
+    # Handle various separators between localhost and port
+    result = re.sub(r'localhost\s+(?:colon|con|column|dot|on|at|slash|port)\s+', 'localhost:', result, flags=re.IGNORECASE)
+    # Handle broader STT aliases like "almost phone 3100" and "localhost dot com 3100"
+    result = re.sub(_LOCALHOST_ALIASES + r'[\s\w]*?\s+(?:colon|con|column|dot|on|at|slash|port)?\s*(\d{4})\b', r'localhost:\1', result, flags=re.IGNORECASE)
     return result
 
 

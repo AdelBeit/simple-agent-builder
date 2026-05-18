@@ -11,7 +11,7 @@ from onboarding import get_onboarding_reply, BEGIN_MESSAGE as ONBOARDING_BEGIN, 
 from browser_submit import submit_lead_to_form, scrape_business_website
 from agentmail import create_inbox, register_reply_webhook, send_config_summary, send_lead_notification
 from agentphone_provision import provision_business_agent
-from moss_rag import store_profile, query_profile
+# from moss_rag import store_profile, query_profile  # disabled — free tier index limit reached
 
 app = FastAPI(title="LeadSaver")
 
@@ -75,12 +75,8 @@ async def handle_call(request: Request, background_tasks: BackgroundTasks):
     state["transcript"] += f"\nCaller: {caller_text}"
 
     # Query Moss for relevant context if this business has an indexed profile
-    moss_context = ""
     business = state.get("business")
-    if business and business.get("id"):
-        moss_context = await query_profile(business["id"], caller_text, name=business.get("name", ""), email=business.get("owner_email", ""))
-
-    reply, call_complete = get_reply(state["history"], caller_text, business=business, caller_number=state.get("caller_number"), moss_context=moss_context)
+    reply, call_complete = get_reply(state["history"], caller_text, business=business, caller_number=state.get("caller_number"))
 
     state["history"].append({"role": "user", "parts": [caller_text]})
     state["history"].append({"role": "model", "parts": [reply]})
@@ -440,7 +436,7 @@ async def complete_onboarding(session_id: str, data: dict):
         if profile_text:
             update_business_profile(biz_id, profile_text)
             print(f"[ONBOARDING] Profile enriched ({len(profile_text)} chars)")
-            await store_profile(biz_id, profile_text, name=data.get("name", ""), email=data.get("owner_email", ""))
+            # await store_profile(biz_id, profile_text, ...)  # Moss disabled
 
             if not data.get("contact_form_url"):
                 try:
