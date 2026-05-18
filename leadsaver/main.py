@@ -135,14 +135,16 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
         return JSONResponse({"status": "ok"})
 
     if session_id not in active_onboarding:
-        # Seed history with begin message AgentPhone already plays — don't double it
         active_onboarding[session_id] = {
-            "history": [{"role": "model", "parts": [ONBOARDING_BEGIN]}],
-            "transcript": f"\nAgent: {ONBOARDING_BEGIN}",
+            "history": [],
+            "transcript": "",
             "awaiting_transfer": False,
             "transfer_number": "",
         }
-        return JSONResponse({"text": "", "hangup": False})
+        # No caller text yet — AgentPhone is playing beginMessage, Gemini will speak on next turn
+        caller_text_check = data.get("transcript") or payload.get("text", "")
+        if not caller_text_check:
+            return JSONResponse({"text": "", "hangup": False})
 
     state = active_onboarding[session_id]
 
@@ -283,9 +285,8 @@ def reset_sessions():
     """Clear all in-memory session state — use when calls get stuck."""
     active_calls.clear()
     active_onboarding.clear()
-    active_greeter.clear()
     print("[RESET] All session state cleared")
-    return {"status": "ok", "cleared": ["active_calls", "active_onboarding", "active_greeter"]}
+    return {"status": "ok", "cleared": ["active_calls", "active_onboarding"]}
 
 
 # ---------------------------------------------------------------------------
