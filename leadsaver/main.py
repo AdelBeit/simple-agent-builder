@@ -251,9 +251,16 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
 
     state["transcript"] += f"\nOwner: {caller_text}"
 
-    # Detect URL in caller's message and scrape immediately
+    # Detect URL in caller's message OR from conversation history (Gemini may have confirmed it)
     scraped_data = None
     url = extract_url(caller_text)
+    if not url and not state.get("scraped"):
+        # Check last few history entries for a URL Gemini may have confirmed
+        for turn in reversed(state["history"][-6:]):
+            u = extract_url(turn["parts"][0])
+            if u:
+                url = u
+                break
     if url and not state.get("scraped"):
         state["scraped"] = True
         state["scraping_in_progress"] = True
@@ -269,6 +276,8 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
 
     _tg = _time.time()
     reply, business_data = get_onboarding_reply(state["history"], caller_text, scraped_data=scraped_data)
+    if not reply:
+        reply = "Sorry, could you say that again?"
     print(f"[FLOW] Gemini reply in {_time.time()-_tg:.1f}s | total={_time.time()-_t0:.1f}s | reply={reply[:60]!r}")
     state["history"].append({"role": "user", "parts": [caller_text]})
     state["history"].append({"role": "model", "parts": [reply]})
