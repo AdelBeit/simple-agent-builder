@@ -126,7 +126,19 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
         return JSONResponse({"text": "", "hangup": False})
 
     state["transcript"] += f"\nOwner: {caller_text}"
-    reply, business_data = get_onboarding_reply(state["history"], caller_text)
+
+    # Detect URL in caller's message and scrape immediately
+    scraped_data = None
+    url = extract_url(caller_text)
+    if url and not state.get("scraped"):
+        state["scraped"] = True
+        state["website_url"] = url
+        scraped_data = await scrape_business_website(url)
+        if not scraped_data:
+            # TODO: remove localhost exception after demo — production should reject unreachable URLs
+            scraped_data = f"(Could not scrape {url} automatically — please collect business info manually from the caller)"
+
+    reply, business_data = get_onboarding_reply(state["history"], caller_text, scraped_data=scraped_data)
     state["history"].append({"role": "user", "parts": [caller_text]})
     state["history"].append({"role": "model", "parts": [reply]})
     state["transcript"] += f"\nAgent: {reply}"
@@ -185,7 +197,8 @@ async def onboarding_message(request: Request, background_tasks: BackgroundTasks
         state["website_url"] = url
         scraped_data = await scrape_business_website(url)
         if not scraped_data:
-            scraped_data = f"(Could not scrape {url} — may be unreachable or require login)"
+            # TODO: remove localhost exception after demo — production should reject unreachable URLs
+            scraped_data = f"(Could not scrape {url} automatically — please collect business info manually from the caller)"
 
     reply, business_data = get_onboarding_reply(state["history"], message, scraped_data=scraped_data)
 
