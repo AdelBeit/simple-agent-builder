@@ -1,4 +1,5 @@
 import os
+import re
 from fastapi import FastAPI, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -186,9 +187,11 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
 
     state["transcript"] += f"\nOwner: {caller_text}"
 
-    # Detect URL in caller's message — triggers scrape if found
+    # Detect URL — hardcode localhost:3100 for any "local host" mention (demo)
     scraped_data = None
     url = extract_url(caller_text)
+    if not url and re.search(r'local\s*host', caller_text, re.IGNORECASE):
+        url = 'http://localhost:3100'
     if url and not state.get("scraped"):
         state["scraped"] = True
         state["scraping_in_progress"] = True
@@ -207,16 +210,15 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
     if not reply:
         reply = "Sorry, could you say that again?"
 
-    # If Gemini emitted a [WEBSITE] tag, extract URL and scrape immediately (0.13s with BS4)
-    if not state.get("scraped") and not state.get("scraping_in_progress"):
+    # If Gemini emitted a [WEBSITE] tag, extract URL and scrape immediately
+    if not state.get("scraped"):
         gemini_url = extract_url(reply)
         if gemini_url:
-            state["scraped"] = True
-            state["website_url"] = gemini_url
             print(f"[FLOW] Gemini identified URL: {gemini_url}, scraping...")
             sd = await scrape_business_website(gemini_url)
-            # Inject scraped data into the current reply by re-running Gemini with it
             if sd:
+                state["scraped"] = True  # only mark scraped if it succeeded
+                state["website_url"] = gemini_url
                 reply2, business_data2 = get_onboarding_reply(
                     state["history"] + [{"role": "model", "parts": [reply]}],
                     "[System: website data loaded]",
@@ -226,6 +228,12 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
                     reply = WEBSITE_TAG.sub('', reply2).strip()
                     if business_data2:
                         business_data = business_data2
+            else:
+                # Scrape failed — tell Gemini so it stops saying "give me a moment"
+                scraped_data = f"(Could not access {gemini_url} — please collect info manually)"
+                reply2, _ = get_onboarding_reply(state["history"], caller_text, scraped_data=scraped_data)
+                if reply2:
+                    reply = WEBSITE_TAG.sub('', reply2).strip()
 
     # Strip [WEBSITE] tag — never spoken aloud
     from gemini import WEBSITE_TAG
