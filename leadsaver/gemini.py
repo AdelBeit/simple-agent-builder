@@ -27,11 +27,12 @@ Only once they confirm they want to set up, ask: "Do you have a website I can pu
 
 PHASE 2 — ONBOARD
 Website path:
-- Accept ANY URL — including localhost addresses like localhost:3100. Never say a URL is invalid.
-- Say "Give me a moment to pull your info from that site..." — the system injects a [SCRAPED DATA] block.
-- Read it back naturally covering: name, phone, hours, services, email, contact form. Ask owner to confirm.
-- If the URL was completely garbled, ask them to spell it clearly.
-- NEVER say "give me a moment" unless you have a confirmed URL.
+- Accept ANY URL the caller gives — typed or spoken. "localhost thirty one hundred" means localhost:3100. Never say a URL is invalid.
+- When you understand the URL, output it as a tag on its own line BEFORE your spoken response: [WEBSITE]http://localhost:3100[/WEBSITE]
+  Then say: "Give me a moment to pull your info from that site..." — the system injects a [SCRAPED DATA] block.
+- Read back the scraped info naturally. Ask owner to confirm.
+- If URL is completely unrecognizable after two attempts, ask them to spell it out.
+- NEVER say "give me a moment" without first outputting the [WEBSITE] tag.
 
 Manual path — collect one at a time:
 1. Business name
@@ -62,12 +63,30 @@ ONBOARDING_BEGIN = (
 
 DONE_SIGNAL = '[DATA]'
 URL_PATTERN = re.compile(r'https?://[^\s]+|localhost:[0-9]+[^\s]*', re.IGNORECASE)
+WEBSITE_TAG = re.compile(r'\[WEBSITE\](.*?)\[/WEBSITE\]', re.IGNORECASE)
+
+
+def gemini(prompt_or_contents, system: str | None = None) -> str:
+    """Single wrapper for all Gemini calls — thinking always off."""
+    cfg = types.GenerateContentConfig(thinking_config=types.ThinkingConfig(thinking_budget=0))
+    if system:
+        cfg = types.GenerateContentConfig(
+            system_instruction=system,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        )
+    resp = client.models.generate_content(model=GEMINI_MODEL, contents=prompt_or_contents, config=cfg)
+    return resp.text.strip()
 
 
 def extract_url(text: str) -> str | None:
-    match = URL_PATTERN.search(text)
-    if match:
-        url = match.group(0).rstrip('.,)')
+    """Extracts a typed URL or a [WEBSITE]...[/WEBSITE] tag Gemini emits for spoken URLs."""
+    m = URL_PATTERN.search(text)
+    if m:
+        url = m.group(0).rstrip('.,)')
+        return url if url.startswith('http') else 'http://' + url
+    m = WEBSITE_TAG.search(text)
+    if m:
+        url = m.group(1).strip()
         return url if url.startswith('http') else 'http://' + url
     return None
 
@@ -81,14 +100,7 @@ def get_onboarding_reply(history: list[dict], message: str,
     user_text = f"{message}\n\n[SCRAPED DATA]\n{scraped_data}" if scraped_data else message
     contents.append(types.Content(role="user", parts=[types.Part(text=user_text)]))
 
-    response = client.models.generate_content(
-        model=GEMINI_MODEL, contents=contents,
-        config=types.GenerateContentConfig(
-            system_instruction=ONBOARDING_SYSTEM_PROMPT,
-            thinking_config=types.ThinkingConfig(thinking_budget=0),
-        ),
-    )
-    reply = response.text.strip()
+    reply = gemini(contents, system=ONBOARDING_SYSTEM_PROMPT)
 
     if "[SCRAPED DATA]" in reply:
         reply = reply[:reply.index("[SCRAPED DATA]")].strip()
@@ -162,14 +174,7 @@ def get_reply(history: list[dict], message: str, business: dict | None = None,
         for t in history
     ] + [types.Content(role="user", parts=[types.Part(text=user_text)])]
 
-    response = client.models.generate_content(
-        model=GEMINI_MODEL, contents=contents,
-        config=types.GenerateContentConfig(
-            system_instruction=_build_receptionist_prompt(biz, caller_number),
-            thinking_config=types.ThinkingConfig(thinking_budget=0),
-        ),
-    )
-    reply = response.text.strip()
+    reply = gemini(contents, system=_build_receptionist_prompt(biz, caller_number))
     return reply, any(s in reply.lower() for s in DONE_SIGNALS)
 
 
@@ -192,10 +197,8 @@ Return only valid JSON, no markdown.
 
 Transcript:
 {transcript}"""
-    response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt,
-        config=types.GenerateContentConfig(thinking_config=types.ThinkingConfig(thinking_budget=0)))
     try:
-        return json.loads(response.text.strip())
+        return json.loads(gemini(prompt))
     except Exception:
         return {"caller_name": "", "caller_phone": "", "caller_email": "",
                 "issue_description": transcript[:200], "is_urgent": False, "service": ""}

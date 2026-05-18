@@ -186,8 +186,10 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
 
     state["transcript"] += f"\nOwner: {caller_text}"
 
+    # Inject pending scraped data from previous turn's background scrape
+    scraped_data = state.pop("pending_scraped_data", None)
+
     # Detect URL in caller's message — triggers scrape if found
-    scraped_data = None
     url = extract_url(caller_text)
     if url and not state.get("scraped"):
         state["scraped"] = True
@@ -206,6 +208,27 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
     reply, business_data = get_onboarding_reply(state["history"], caller_text, scraped_data=scraped_data)
     if not reply:
         reply = "Sorry, could you say that again?"
+
+    # If Gemini emitted a [WEBSITE] tag, extract URL and trigger scrape on next turn
+    if not state.get("scraped") and not state.get("scraping_in_progress"):
+        gemini_url = extract_url(reply)
+        if gemini_url:
+            state["scraped"] = True
+            state["scraping_in_progress"] = True
+            state["website_url"] = gemini_url
+            print(f"[FLOW] Gemini identified URL: {gemini_url}")
+            # Run scrape and inject on next turn via background-like pattern
+            import asyncio
+            async def _scrape_and_update():
+                sd = await scrape_business_website(gemini_url)
+                state["scraping_in_progress"] = False
+                state["pending_scraped_data"] = sd or f"(Could not scrape {gemini_url})"
+            asyncio.create_task(_scrape_and_update())
+
+    # Strip [WEBSITE] tag — never spoken aloud
+    from gemini import WEBSITE_TAG
+    reply = WEBSITE_TAG.sub('', reply).strip()
+
     print(f"[FLOW] Gemini reply in {_time.time()-_tg:.1f}s | total={_time.time()-_t0:.1f}s | reply={reply[:60]!r}")
     state["history"].append({"role": "user", "parts": [caller_text]})
     state["history"].append({"role": "model", "parts": [reply]})
