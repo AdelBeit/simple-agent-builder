@@ -8,6 +8,7 @@
     "demo": "npx concurrently -n plumber,stylist -c blue,yellow \"cd demo-plumber && node server.js\" \"cd demo-stylist && node server.js\"",
     "demo:plumber": "cd demo-plumber && node server.js",
     "demo:stylist": "cd demo-stylist && node server.js",
-    "onboarding": "cd demo-agent-onboarding && node server.js"
+    "onboarding": "cd demo-agent-onboarding && node server.js",
+    "landing": "cd landing-page && python3 -m http.server 3002"
   }
 }
