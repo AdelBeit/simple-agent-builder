@@ -181,7 +181,7 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
         print(f"[GREETER] Switching session {session_id[-8:]} to onboarding flow")
         # 1.5s pause so TTS finishes the sign-off before onboarding begin plays
         import asyncio
-        await asyncio.sleep(1.5)
+        await asyncio.sleep(2)
         return JSONResponse({"text": f"{reply} {ONBOARDING_BEGIN}", "hangup": False})
 
     if state["turns"] >= 5:
