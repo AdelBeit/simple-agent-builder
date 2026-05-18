@@ -88,12 +88,25 @@ async def handle_call(request: Request, background_tasks: BackgroundTasks):
 # ---------------------------------------------------------------------------
 # Webhook: Greeter agent (pitches LeadSaver, transfers to onboarding)
 # ---------------------------------------------------------------------------
-GREETER_BEGIN = (
-    "Thanks for calling LeadSaver! We set up AI receptionists for small businesses, "
-    "so you never miss a customer call again. "
-    "Are you a business owner looking to get set up?"
-)
-GREETER_YES = ["yes", "yeah", "sure", "yep", "please", "absolutely", "i am", "definitely", "sign me up"]
+GREETER_SYSTEM_PROMPT = """You are the sales representative for LeadSaver, an AI receptionist service for small businesses.
+
+About LeadSaver:
+- LeadSaver answers missed calls 24/7 as a virtual receptionist for any small business (plumbers, roofers, contractors, salons, etc.)
+- When a customer calls and the owner misses it, LeadSaver's AI answers, collects the caller's name, phone number, and what they need
+- It then automatically submits that lead to the business's contact form and emails the owner
+- Pricing: $49/month flat rate. No setup fees. No per-call charges.
+- Setup takes 2 minutes over the phone — we pull info from their website automatically
+
+Your job:
+- Answer any questions about LeadSaver warmly and concisely
+- If the caller is a business owner interested in signing up, offer to transfer them to setup
+- If they ask about pricing, tell them $49/month
+- If they ask how it works, give a 2-sentence summary
+- Keep responses to 1-2 sentences
+- When the caller is ready to sign up, say: "Let me connect you with our setup team right now!"
+
+Transfer signals — if the caller says things like "yes", "sign me up", "let's do it", "I'm interested", "set me up", "get me started" — respond with your transfer line and end with TRANSFER_NOW
+If not interested after 3 turns, politely end the call."""
 
 active_greeter: dict[str, dict] = {}
 
@@ -110,28 +123,45 @@ async def handle_greeter(request: Request):
         return JSONResponse({"status": "ok"})
 
     if session_id not in active_greeter:
-        active_greeter[session_id] = {"turns": 0}
+        active_greeter[session_id] = {"history": [], "turns": 0}
         return JSONResponse({"text": "", "hangup": False})
 
     caller_text = data.get("transcript") or payload.get("text", "")
+    if not caller_text:
+        return JSONResponse({"text": "", "hangup": False})
+
     state = active_greeter[session_id]
     state["turns"] += 1
 
-    if any(s in caller_text.lower() for s in GREETER_YES):
-        active_greeter.pop(session_id, None)
-        return JSONResponse({
-            "text": "Great! Let me connect you with our setup team — they'll get your receptionist ready in just a couple minutes.",
-            "action": "transfer"
-        })
+    from google import genai as _genai
+    from google.genai import types as _types
+    from config import GEMINI_API_KEY, GEMINI_MODEL
+    _client = _genai.Client(api_key=GEMINI_API_KEY)
 
-    if state["turns"] >= 3:
-        active_greeter.pop(session_id, None)
-        return JSONResponse({"text": "No problem! Give us a call back anytime you're ready. Have a great day!", "hangup": True})
+    history = [
+        _types.Content(role=t["role"], parts=[_types.Part(text=t["parts"][0])])
+        for t in state["history"]
+    ]
+    response = _client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=history + [_types.Content(role="user", parts=[_types.Part(text=caller_text)])],
+        config=_types.GenerateContentConfig(system_instruction=GREETER_SYSTEM_PROMPT),
+    )
+    reply = response.text.strip()
 
-    return JSONResponse({
-        "text": "LeadSaver sets up a 24/7 AI receptionist for your business — it answers missed calls, collects lead info, and submits it to your contact form automatically. Interested in getting set up today?",
-        "hangup": False
-    })
+    state["history"].append({"role": "user", "parts": [caller_text]})
+    state["history"].append({"role": "model", "parts": [reply]})
+
+    if "TRANSFER_NOW" in reply:
+        reply = reply.replace("TRANSFER_NOW", "").strip()
+        active_greeter.pop(session_id, None)
+        return JSONResponse({"text": reply, "action": "transfer"})
+
+    if state["turns"] >= 5:
+        active_greeter.pop(session_id, None)
+        return JSONResponse({"text": "Thanks for calling LeadSaver! Give us a call back anytime. Have a great day!", "hangup": True})
+
+    return JSONResponse({"text": reply, "hangup": False})
 
 
 # ---------------------------------------------------------------------------
