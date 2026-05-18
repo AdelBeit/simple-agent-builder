@@ -66,7 +66,14 @@ Website text:
 
 Return plain text, no markdown."""
 
-        response = client_g.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+        from google.genai import types as _types
+        response = client_g.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=_types.GenerateContentConfig(
+                thinking_config=_types.ThinkingConfig(thinking_budget=0)
+            ),
+        )
         return response.text.strip()
 
     except Exception as e:
