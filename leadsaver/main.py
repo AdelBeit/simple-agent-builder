@@ -439,6 +439,26 @@ async def complete_onboarding(session_id: str, data: dict):
             print(f"[ONBOARDING] Profile enriched ({len(profile_text)} chars)")
             await store_profile(biz_id, profile_text, name=data.get("name", ""), email=data.get("owner_email", ""))
 
+            if not data.get("contact_form_url"):
+                try:
+                    from google import genai as _genai
+                    from config import GEMINI_API_KEY, GEMINI_MODEL
+                    _client = _genai.Client(api_key=GEMINI_API_KEY)
+                    _resp = _client.models.generate_content(
+                        model=GEMINI_MODEL,
+                        contents=f"From this website content, find the contact form page URL. Look for links containing 'contact', 'quote', 'book', or 'schedule'. Return only the full URL or empty string if none found.\n\n{profile_text}"
+                    )
+                    detected = _resp.text.strip().strip('"').strip("'")
+                    if detected and any(kw in detected.lower() for kw in ["contact", "quote", "book", "schedule", "form"]):
+                        data["contact_form_url"] = detected
+                        conn = get_db()
+                        conn.execute("UPDATE businesses SET contact_form_url = ? WHERE id = ?", (detected, biz_id))
+                        conn.commit()
+                        conn.close()
+                        print(f"[ONBOARDING] Auto-detected contact form: {detected}")
+                except Exception as e:
+                    print(f"[ONBOARDING] Contact form auto-detect failed (non-fatal): {e}")
+
     # 4. Send config summary email to owner
     business = get_business(biz_id)
     if inbox_id and data.get("owner_email") and business:
@@ -547,7 +567,7 @@ async def process_completed_call(call_id: str, transcript: str, business: dict |
                         issue=issue, transcript=transcript)
     print(f"[LEAD] Saved lead #{lead_id}: {caller_name} / {caller_phone} / {issue}")
 
-    contact_form_url = business.get("contact_form_url") if business else "http://localhost:3000/#contact"
+    contact_form_url = (business.get("contact_form_url") or "").strip() if business else "http://localhost:3000/#contact"
     available_services = business.get("services", []) if business else []
     if extracted_service and extracted_service in available_services:
         service = extracted_service
@@ -557,10 +577,14 @@ async def process_completed_call(call_id: str, transcript: str, business: dict |
         service = "Emergency Plumbing" if is_urgent else "Drain Cleaning"
     message = f"{issue}{' [URGENT]' if is_urgent else ''}"
 
-    success = await submit_lead_to_form(
-        name=caller_name, phone=caller_phone, email=caller_email,
-        service=service, message=message, form_url=contact_form_url,
-    )
+    success = False
+    if contact_form_url:
+        success = await submit_lead_to_form(
+            name=caller_name, phone=caller_phone, email=caller_email,
+            service=service, message=message, form_url=contact_form_url,
+        )
+    else:
+        print(f"[LEAD] No contact form on file — skipping Browser Use")
 
     if success:
         mark_form_submitted(lead_id)
