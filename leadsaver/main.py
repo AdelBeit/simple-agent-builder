@@ -101,18 +101,24 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
     payload = await request.json()
     data = payload.get("data", payload)
     event = payload.get("event") or payload.get("type", "")
-    session_id = data.get("callId") or payload.get("callId") or "unknown"
+    session_id = (data.get("callId") or payload.get("callId") or
+                  data.get("id") or payload.get("id") or "unknown")
 
     if event == "agent.call_ended":
         active_greeter.pop(session_id, None)
         active_onboarding.pop(session_id, None)
+        active_calls.pop(session_id, None)
         return JSONResponse({"status": "ok"})
 
     # Route demo business agent calls to handle_call
     agent_id = payload.get("agentId") or data.get("agentId", "")
-    print(f"[GREETER] agentId={agent_id!r} AGENTPHONE_AGENT_ID={AGENTPHONE_AGENT_ID!r} match={agent_id == AGENTPHONE_AGENT_ID}")
+    print(f"[GREETER] session={session_id[-8:]} agentId={agent_id[-8:] if agent_id else 'none'}")
     if agent_id == AGENTPHONE_AGENT_ID:
         print(f"[GREETER] Routing to handle_call for demo agent")
+        return await handle_call(request, background_tasks)
+
+    # Route to active call (demo business receptionist)
+    if session_id in active_calls:
         return await handle_call(request, background_tasks)
 
     # Once session is in onboarding state, keep routing there
@@ -218,7 +224,17 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
         print(f"[ONBOARDING] Transfer confirmation — caller said: {caller_text!r}")
         if any(s in caller_text.lower() for s in yes_signals):
             active_onboarding.pop(session_id, None)
-            return JSONResponse({"text": "Connecting you now!", "action": "transfer", "transferNumber": state["transfer_number"]})
+            # In-place switch to business receptionist — action:transfer doesn't work reliably
+            business = get_business_by_number(state["transfer_number"])
+            demo_begin = build_begin_message(business or {})
+            active_calls[session_id] = {
+                "history": [{"role": "model", "parts": [demo_begin]}],
+                "transcript": f"\nAgent: {demo_begin}",
+                "business": business,
+                "caller_number": data.get("from") or payload.get("from", ""),
+            }
+            print(f"[ONBOARDING→DEMO] session={session_id[-8:]} switching to business receptionist")
+            return JSONResponse({"text": f"Here's your receptionist! {demo_begin}", "hangup": False})
         else:
             active_onboarding.pop(session_id, None)
             return JSONResponse({"text": "No problem! We'll send a summary to your email shortly — your receptionist is live and ready to take calls. Have a great day!", "hangup": True})
@@ -364,6 +380,16 @@ async def handle_browser_done(request: Request):
 @app.get("/leads")
 def list_leads():
     return get_all_leads()
+
+
+@app.post("/reset-sessions")
+def reset_sessions():
+    """Clear all in-memory session state — use when calls get stuck."""
+    active_calls.clear()
+    active_onboarding.clear()
+    active_greeter.clear()
+    print("[RESET] All session state cleared")
+    return {"status": "ok", "cleared": ["active_calls", "active_onboarding", "active_greeter"]}
 
 
 # ---------------------------------------------------------------------------
