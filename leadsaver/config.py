@@ -34,8 +34,10 @@ BUSINESS = {
     ],
 }
 
-# Demo mode — reuses existing numbers to avoid per-number charges during testing
+# Demo mode — reuses existing numbers/inboxes to avoid provisioning charges during testing
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+DEMO_INBOX_ID = "peak-flow-plumbing@agentmail.to"
+DEMO_INBOX_EMAIL = "peak-flow-plumbing@agentmail.to"
 
 # Stripe
 # Moss

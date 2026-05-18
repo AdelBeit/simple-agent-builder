@@ -1,6 +1,6 @@
 import re
 import httpx
-from config import AGENTMAIL_API_KEY, AGENTMAIL_BASE_URL, AGENTMAIL_DOMAIN, NGROK_DOMAIN, STRIPE_PAYMENT_LINK
+from config import AGENTMAIL_API_KEY, AGENTMAIL_BASE_URL, AGENTMAIL_DOMAIN, NGROK_DOMAIN, STRIPE_PAYMENT_LINK, DEMO_MODE, DEMO_INBOX_ID, DEMO_INBOX_EMAIL
 
 
 def _headers():
@@ -18,6 +18,15 @@ def _slugify(name: str) -> str:
 
 def create_inbox(business_name: str) -> dict:
     """Create an AgentMail inbox for a business. Returns {id, email}."""
+
+    if DEMO_MODE:
+        # DEMO MODE: Reuses the shared demo inbox instead of creating a new one per business.
+        # Avoids inbox sprawl during testing. All demo businesses share peak-flow-plumbing@agentmail.to.
+        # TO RESTORE PRODUCTION BEHAVIOR: set DEMO_MODE=false in .env
+        return {"id": DEMO_INBOX_ID, "email": DEMO_INBOX_EMAIL}
+
+    # --- PRODUCTION PATH (not used in DEMO_MODE) ---
+    # Creates a dedicated inbox per business. Each business gets their own sending identity.
     import time
     username = _slugify(business_name)
     for attempt, suffix in enumerate(["", f"-{int(time.time()) % 10000}"]):
