@@ -93,7 +93,7 @@ _SPOKEN_PORT_MAP = {
 }
 
 # Broader localhost aliases STT might produce
-_LOCALHOST_ALIASES = r'(?:localhost|local\s*host|local\s*host\s*dot\s*com|almost\s*phone|local\s*server|my\s*local)'
+_LOCALHOST_ALIASES = r'(?:localhost|local\s*host|local\s*host\s*dot\s*com|almost\s*phone|local\s*server|my\s*local|those|it\s*looks\s*at\s*those|looks\s*at\s*those)'
 
 
 def _normalize_spoken_url(text: str) -> str:
