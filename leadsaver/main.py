@@ -43,7 +43,7 @@ async def handle_call(request: Request, background_tasks: BackgroundTasks):
     print(f"[CALL] Payload: {payload}")
     data = payload.get("data", payload)  # AgentPhone wraps fields in "data"
     event = payload.get("event") or payload.get("type", "")
-    call_id = data.get("callId") or payload.get("callId") or payload.get("id") or f"anon_{int(__import__("time").time()*1000)}"
+    call_id = data.get("callId") or payload.get("callId") or payload.get("id") or "unknown"
     agentphone_number = data.get("to") or payload.get("to") or payload.get("toNumber", "")
 
     # Ignore call_ended events
@@ -103,7 +103,7 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
     event = payload.get("event") or payload.get("type", "")
     session_id = (data.get("callId") or payload.get("callId") or
                   data.get("id") or payload.get("id") or
-                  f"anon_{int(__import__('time').time()*1000)}")
+                  "unknown")
 
     if event == "agent.call_ended":
         active_greeter.pop(session_id, None)
@@ -113,9 +113,9 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
 
     # Route demo business agent calls to handle_call
     agent_id = payload.get("agentId") or data.get("agentId", "")
-    print(f"[GREETER] session={session_id[-8:]} agentId={agent_id[-8:] if agent_id else 'none'}")
+    print(f"[FLOW] session={session_id[-8:]} agentId={agent_id[-8:] if agent_id else 'none'}")
     if agent_id == AGENTPHONE_AGENT_ID:
-        print(f"[GREETER] Routing to handle_call for demo agent")
+        print(f"[FLOW] Routing to handle_call for demo agent")
         return await handle_call(request, background_tasks)
 
     # Route to active call (demo business receptionist)
@@ -152,7 +152,7 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
             "awaiting_transfer": False,
             "transfer_number": "",
         }
-        print(f"[GREETER→ONBOARDING] session={session_id[-8:]} starting onboarding")
+        print(f"[FLOW] session={session_id[-8:]} starting onboarding")
         return JSONResponse({"text": "Great, let's get you set up!", "hangup": False})
 
     # Answer questions about LeadSaver
@@ -174,7 +174,7 @@ If not interested after 3 exchanges, politely end the call."""
         config=_types.GenerateContentConfig(system_instruction=PITCH_PROMPT),
     )
     reply = response.text.strip()
-    print(f"[GREETER] session={session_id[-8:]} turn={state['turns']} reply={reply[:80]!r}")
+    print(f"[FLOW] session={session_id[-8:]} turn={state['turns']} reply={reply[:80]!r}")
 
     state.setdefault("history", [])
     state["history"].append({"role": "user", "parts": [caller_text]})
@@ -195,11 +195,11 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
     payload = await request.json()
     data = payload.get("data", payload)
     event = payload.get("event") or payload.get("type", "")
-    session_id = data.get("callId") or payload.get("callId") or payload.get("id") or f"anon_{int(__import__("time").time()*1000)}"
+    session_id = data.get("callId") or payload.get("callId") or payload.get("id") or "unknown"
     caller_text_log = data.get("transcript") or payload.get("text", "")
     import time as _time
     _t0 = _time.time()
-    print(f"[ONBOARDING] event={event} session={session_id[-8:]} awaiting={active_onboarding.get(session_id, {}).get('awaiting_transfer')} scraping={active_onboarding.get(session_id, {}).get('scraping_in_progress')} scraped={active_onboarding.get(session_id, {}).get('scraped')} text={caller_text_log!r}")
+    print(f"[FLOW] event={event} session={session_id[-8:]} awaiting={active_onboarding.get(session_id, {}).get('awaiting_transfer')} scraping={active_onboarding.get(session_id, {}).get('scraping_in_progress')} scraped={active_onboarding.get(session_id, {}).get('scraped')} text={caller_text_log!r}")
 
     if event == "agent.call_ended":
         active_onboarding.pop(session_id, None)
@@ -222,7 +222,7 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
     if state.get("awaiting_transfer"):
         caller_text = data.get("transcript") or payload.get("text", "")
         yes_signals = ["yes", "yeah", "sure", "yep", "go ahead", "connect", "transfer", "sounds good", "please", "absolutely"]
-        print(f"[ONBOARDING] Transfer confirmation — caller said: {caller_text!r}")
+        print(f"[FLOW] Transfer confirmation — caller said: {caller_text!r}")
         if any(s in caller_text.lower() for s in yes_signals):
             active_onboarding.pop(session_id, None)
             # In-place switch to business receptionist — action:transfer doesn't work reliably
@@ -246,7 +246,7 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
 
     # If scrape already triggered, ignore concurrent duplicate hits to avoid multiple "give me a moment"
     if state.get("scraping_in_progress"):
-        print(f"[ONBOARDING] Duplicate hit during scrape, ignoring: {caller_text!r}")
+        print(f"[FLOW] Duplicate hit during scrape, ignoring: {caller_text!r}")
         return JSONResponse({"text": "", "hangup": False})
 
     state["transcript"] += f"\nOwner: {caller_text}"
@@ -258,18 +258,18 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
         state["scraped"] = True
         state["scraping_in_progress"] = True
         state["website_url"] = url
-        print(f"[ONBOARDING] Scraping {url} ...")
+        print(f"[FLOW] Scraping {url} ...")
         _ts = _time.time()
         scraped_data = await scrape_business_website(url)
         state["scraping_in_progress"] = False
-        print(f"[ONBOARDING] Scrape done in {_time.time()-_ts:.1f}s ({len(scraped_data)} chars)")
+        print(f"[FLOW] Scrape done in {_time.time()-_ts:.1f}s ({len(scraped_data)} chars)")
         if not scraped_data:
             # TODO: remove localhost exception after demo — production should reject unreachable URLs
             scraped_data = f"(Could not scrape {url} automatically — please collect business info manually from the caller)"
 
     _tg = _time.time()
     reply, business_data = get_onboarding_reply(state["history"], caller_text, scraped_data=scraped_data)
-    print(f"[ONBOARDING] Gemini reply in {_time.time()-_tg:.1f}s | total={_time.time()-_t0:.1f}s | reply={reply[:60]!r}")
+    print(f"[FLOW] Gemini reply in {_time.time()-_tg:.1f}s | total={_time.time()-_t0:.1f}s | reply={reply[:60]!r}")
     state["history"].append({"role": "user", "parts": [caller_text]})
     state["history"].append({"role": "model", "parts": [reply]})
     state["transcript"] += f"\nAgent: {reply}"
@@ -287,7 +287,7 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
             business_data["agentphone_agent_id"] = provisioned["agent_id"]
             business_data["agentphone_number"] = agent_number
         except Exception as e:
-            print(f"[ONBOARDING] Provisioning failed: {e}")
+            print(f"[FLOW] Provisioning failed: {e}")
 
         background_tasks.add_task(complete_onboarding, session_id, business_data)
 
@@ -428,11 +428,11 @@ async def complete_onboarding(session_id: str, data: dict):
                 if "@" in extracted and "." in extracted:
                     owner_email = extracted
                     data["owner_email"] = owner_email
-                    print(f"[ONBOARDING] Email extracted from profile: {owner_email}")
+                    print(f"[FLOW] Email extracted from profile: {owner_email}")
             except Exception:
                 pass
         if not owner_email:
-            print(f"[ONBOARDING] WARNING: no owner_email — summary email will not be sent")
+            print(f"[FLOW] WARNING: no owner_email — summary email will not be sent")
 
     # 1. Save business to DB first — always, regardless of downstream failures
     biz_id = save_business(
@@ -444,7 +444,7 @@ async def complete_onboarding(session_id: str, data: dict):
         services=data.get("services", []),
         owner_email=owner_email,
     )
-    print(f"[ONBOARDING] Business saved as ID #{biz_id}")
+    print(f"[FLOW] Business saved as ID #{biz_id}")
 
     # 2. Create AgentMail inbox
     inbox_id, inbox_email = "", ""
@@ -452,22 +452,22 @@ async def complete_onboarding(session_id: str, data: dict):
         inbox = create_inbox(data.get("name", "business"))
         inbox_id = inbox["id"]
         inbox_email = inbox["email"]
-        print(f"[ONBOARDING] Inbox created: {inbox_email}")
+        print(f"[FLOW] Inbox created: {inbox_email}")
         conn = get_db()
         conn.execute("UPDATE businesses SET inbox_id=?, inbox_email=? WHERE id=?", (inbox_id, inbox_email, biz_id))
         conn.commit()
         conn.close()
         register_reply_webhook(inbox_id)
     except Exception as e:
-        print(f"[ONBOARDING] AgentMail inbox creation failed (non-fatal): {e}")
+        print(f"[FLOW] AgentMail inbox creation failed (non-fatal): {e}")
 
     # 3. Scrape website + index in Moss
     if data.get("website_url"):
-        print(f"[ONBOARDING] Scraping {data['website_url']} ...")
+        print(f"[FLOW] Scraping {data['website_url']} ...")
         profile_text = await scrape_business_website(data["website_url"])
         if profile_text:
             update_business_profile(biz_id, profile_text)
-            print(f"[ONBOARDING] Profile enriched ({len(profile_text)} chars)")
+            print(f"[FLOW] Profile enriched ({len(profile_text)} chars)")
             # await store_profile(biz_id, profile_text, ...)  # Moss disabled
 
             if not data.get("contact_form_url"):
@@ -486,18 +486,18 @@ async def complete_onboarding(session_id: str, data: dict):
                         conn.execute("UPDATE businesses SET contact_form_url = ? WHERE id = ?", (detected, biz_id))
                         conn.commit()
                         conn.close()
-                        print(f"[ONBOARDING] Auto-detected contact form: {detected}")
+                        print(f"[FLOW] Auto-detected contact form: {detected}")
                 except Exception as e:
-                    print(f"[ONBOARDING] Contact form auto-detect failed (non-fatal): {e}")
+                    print(f"[FLOW] Contact form auto-detect failed (non-fatal): {e}")
 
     # 4. Send config summary email to owner
     business = get_business(biz_id)
     if inbox_id and data.get("owner_email") and business:
         try:
             ok = send_config_summary(inbox_id, data["owner_email"], business)
-            print(f"[ONBOARDING] Config email {'sent' if ok else 'FAILED'} → {data['owner_email']}")
+            print(f"[FLOW] Config email {'sent' if ok else 'FAILED'} → {data['owner_email']}")
         except Exception as e:
-            print(f"[ONBOARDING] Config email failed (non-fatal): {e}")
+            print(f"[FLOW] Config email failed (non-fatal): {e}")
 
     # 5. Persist agent provisioning info (already provisioned in webhook if via phone)
     agent_id = data.get("agentphone_agent_id", "")
@@ -510,7 +510,7 @@ async def complete_onboarding(session_id: str, data: dict):
         )
         conn.commit()
         conn.close()
-        print(f"[ONBOARDING] Agent saved: {agent_id} / {agent_number}")
+        print(f"[FLOW] Agent saved: {agent_id} / {agent_number}")
     else:
         # HTTP chat path — provision here
         try:
@@ -524,11 +524,11 @@ async def complete_onboarding(session_id: str, data: dict):
             )
             conn.commit()
             conn.close()
-            print(f"[ONBOARDING] Agent provisioned: {agent_id} / {agent_number}")
+            print(f"[FLOW] Agent provisioned: {agent_id} / {agent_number}")
         except Exception as e:
-            print(f"[ONBOARDING] Agent provisioning failed (non-fatal): {e}")
+            print(f"[FLOW] Agent provisioning failed (non-fatal): {e}")
 
-    print(f"[ONBOARDING] Complete for business #{biz_id}")
+    print(f"[FLOW] Complete for business #{biz_id}")
 
 
 # ---------------------------------------------------------------------------
