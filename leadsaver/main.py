@@ -109,7 +109,7 @@ Your job:
 - If they ask about pricing → $49/month flat, no setup fees
 - If they ask how it works → "We set up an AI receptionist for your business in 2 minutes. It answers missed calls, collects lead info, and emails it to you automatically."
 - Keep every response to 1-2 sentences
-- When ready to transfer: "Let me connect you with our onboarding team — takes about 2 minutes!" then TRANSFER_NOW
+- When ready to transfer: "Let me connect you with our onboarding team!" then TRANSFER_NOW
 
 Transfer signals: "yes", "set me up", "sign me up", "let's do it", "get started", "onboard", "I'm in", "ready", "go ahead"
 If not interested after 4 turns, politely end the call."""
@@ -199,7 +199,9 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
     event = payload.get("event") or payload.get("type", "")
     session_id = data.get("callId") or payload.get("callId") or payload.get("id", "unknown")
     caller_text_log = data.get("transcript") or payload.get("text", "")
-    print(f"[ONBOARDING] event={event} session={session_id[-8:]} awaiting_transfer={active_onboarding.get(session_id, {}).get('awaiting_transfer')} text={caller_text_log!r}")
+    import time as _time
+    _t0 = _time.time()
+    print(f"[ONBOARDING] event={event} session={session_id[-8:]} awaiting={active_onboarding.get(session_id, {}).get('awaiting_transfer')} scraping={active_onboarding.get(session_id, {}).get('scraping_in_progress')} scraped={active_onboarding.get(session_id, {}).get('scraped')} text={caller_text_log!r}")
 
     if event == "agent.call_ended":
         active_onboarding.pop(session_id, None)
@@ -234,6 +236,11 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
     if not caller_text:
         return JSONResponse({"text": "", "hangup": False})
 
+    # If scrape already triggered, ignore concurrent duplicate hits to avoid multiple "give me a moment"
+    if state.get("scraping_in_progress"):
+        print(f"[ONBOARDING] Duplicate hit during scrape, ignoring: {caller_text!r}")
+        return JSONResponse({"text": "", "hangup": False})
+
     state["transcript"] += f"\nOwner: {caller_text}"
 
     # Detect URL in caller's message and scrape immediately
@@ -241,13 +248,20 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
     url = extract_url(caller_text)
     if url and not state.get("scraped"):
         state["scraped"] = True
+        state["scraping_in_progress"] = True
         state["website_url"] = url
+        print(f"[ONBOARDING] Scraping {url} ...")
+        _ts = _time.time()
         scraped_data = await scrape_business_website(url)
+        state["scraping_in_progress"] = False
+        print(f"[ONBOARDING] Scrape done in {_time.time()-_ts:.1f}s ({len(scraped_data)} chars)")
         if not scraped_data:
             # TODO: remove localhost exception after demo — production should reject unreachable URLs
             scraped_data = f"(Could not scrape {url} automatically — please collect business info manually from the caller)"
 
+    _tg = _time.time()
     reply, business_data = get_onboarding_reply(state["history"], caller_text, scraped_data=scraped_data)
+    print(f"[ONBOARDING] Gemini reply in {_time.time()-_tg:.1f}s | total={_time.time()-_t0:.1f}s | reply={reply[:60]!r}")
     state["history"].append({"role": "user", "parts": [caller_text]})
     state["history"].append({"role": "model", "parts": [reply]})
     state["transcript"] += f"\nAgent: {reply}"
