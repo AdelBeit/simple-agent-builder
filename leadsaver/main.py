@@ -94,6 +94,8 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
     data = payload.get("data", payload)
     event = payload.get("event") or payload.get("type", "")
     session_id = data.get("callId") or payload.get("callId") or payload.get("id", "unknown")
+    caller_text_log = data.get("transcript") or payload.get("text", "")
+    print(f"[ONBOARDING] event={event} session={session_id[-8:]} awaiting_transfer={active_onboarding.get(session_id, {}).get('awaiting_transfer')} text={caller_text_log!r}")
 
     if event == "agent.call_ended":
         active_onboarding.pop(session_id, None)
@@ -113,10 +115,11 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
     state = active_onboarding[session_id]
     if state.get("awaiting_transfer"):
         caller_text = data.get("transcript") or payload.get("text", "")
-        yes_signals = ["yes", "yeah", "sure", "yep", "go ahead", "connect", "transfer", "sounds good"]
+        yes_signals = ["yes", "yeah", "sure", "yep", "go ahead", "connect", "transfer", "sounds good", "please", "absolutely"]
+        print(f"[ONBOARDING] Transfer confirmation — caller said: {caller_text!r}")
         if any(s in caller_text.lower() for s in yes_signals):
             active_onboarding.pop(session_id, None)
-            return JSONResponse({"action": "transfer", "transferNumber": state["transfer_number"]})
+            return JSONResponse({"text": "Connecting you now!", "action": "transfer", "transferNumber": state["transfer_number"]})
         else:
             active_onboarding.pop(session_id, None)
             return JSONResponse({"text": "No problem! You'll get a summary email shortly, and your receptionist is ready to take calls. Have a great day!", "hangup": True})

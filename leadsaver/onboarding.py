@@ -48,9 +48,33 @@ BEGIN_MESSAGE = (
 DONE_SIGNAL = '"done": true'
 URL_PATTERN = re.compile(r'https?://[^\s]+|localhost:[0-9]+[^\s]*', re.IGNORECASE)
 
+# Spoken URL patterns — STT transcribes URLs as words
+# e.g. "localhost colon 3100" or "localhost colon thirty one hundred"
+_SPOKEN_PORT_MAP = {
+    "thirty one hundred": "3100", "thirty one zero zero": "3100",
+    "thirty one oh one": "3101", "thirty one zero one": "3101",
+    "three thousand": "3000", "three zero zero zero": "3000",
+    "eight thousand": "8000", "eighty hundred": "8000",
+    "three thousand ten": "3010", "thirty ten": "3010",
+}
+_SPOKEN_URL_PATTERN = re.compile(
+    r'localhost\s+colon\s+(\d+|' + '|'.join(re.escape(k) for k in _SPOKEN_PORT_MAP) + r')',
+    re.IGNORECASE
+)
+
+
+def _normalize_spoken_url(text: str) -> str:
+    """Convert spoken URL forms to typed form before regex matching."""
+    result = text
+    for spoken, port in _SPOKEN_PORT_MAP.items():
+        result = re.sub(re.escape(spoken), port, result, flags=re.IGNORECASE)
+    result = re.sub(r'localhost\s+colon\s+', 'localhost:', result, flags=re.IGNORECASE)
+    return result
+
 
 def extract_url(text: str) -> str | None:
-    match = URL_PATTERN.search(text)
+    normalized = _normalize_spoken_url(text)
+    match = URL_PATTERN.search(normalized)
     if match:
         url = match.group(0).rstrip('.,)')
         if not url.startswith('http'):
