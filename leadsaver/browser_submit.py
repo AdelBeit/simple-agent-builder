@@ -39,6 +39,8 @@ async def scrape_business_website(url: str) -> str:
     from config import GEMINI_API_KEY, GEMINI_MODEL
 
     try:
+        if not url.startswith("http"):
+            url = "http://" + url
         async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
             resp = await client.get(url)
             resp.raise_for_status()
