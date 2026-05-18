@@ -26,7 +26,7 @@ def create_inbox(business_name: str) -> dict:
             headers=_headers(),
             json={"username": f"{username}{suffix}", "domain": AGENTMAIL_DOMAIN, "display_name": business_name},
         )
-        if resp.status_code == 403 and "taken" in resp.text.lower() and attempt == 0:
+        if resp.status_code == 403 and attempt == 0:  # any 403 on first attempt → retry with suffix
             continue
         resp.raise_for_status()
         data = resp.json()
