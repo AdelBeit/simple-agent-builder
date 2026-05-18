@@ -86,6 +86,55 @@ async def handle_call(request: Request, background_tasks: BackgroundTasks):
 
 
 # ---------------------------------------------------------------------------
+# Webhook: Greeter agent (pitches LeadSaver, transfers to onboarding)
+# ---------------------------------------------------------------------------
+GREETER_BEGIN = (
+    "Thanks for calling LeadSaver! We set up AI receptionists for small businesses, "
+    "so you never miss a customer call again. "
+    "Are you a business owner looking to get set up?"
+)
+GREETER_YES = ["yes", "yeah", "sure", "yep", "please", "absolutely", "i am", "definitely", "sign me up"]
+
+active_greeter: dict[str, dict] = {}
+
+
+@app.post("/webhook/greeter")
+async def handle_greeter(request: Request):
+    payload = await request.json()
+    data = payload.get("data", payload)
+    event = payload.get("event") or payload.get("type", "")
+    session_id = data.get("callId") or payload.get("callId") or "unknown"
+
+    if event == "agent.call_ended":
+        active_greeter.pop(session_id, None)
+        return JSONResponse({"status": "ok"})
+
+    if session_id not in active_greeter:
+        active_greeter[session_id] = {"turns": 0}
+        return JSONResponse({"text": "", "hangup": False})
+
+    caller_text = data.get("transcript") or payload.get("text", "")
+    state = active_greeter[session_id]
+    state["turns"] += 1
+
+    if any(s in caller_text.lower() for s in GREETER_YES):
+        active_greeter.pop(session_id, None)
+        return JSONResponse({
+            "text": "Great! Let me connect you with our setup team — they'll get your receptionist ready in just a couple minutes.",
+            "action": "transfer"
+        })
+
+    if state["turns"] >= 3:
+        active_greeter.pop(session_id, None)
+        return JSONResponse({"text": "No problem! Give us a call back anytime you're ready. Have a great day!", "hangup": True})
+
+    return JSONResponse({
+        "text": "LeadSaver sets up a 24/7 AI receptionist for your business — it answers missed calls, collects lead info, and submits it to your contact form automatically. Interested in getting set up today?",
+        "hangup": False
+    })
+
+
+# ---------------------------------------------------------------------------
 # Webhook: AgentPhone onboarding call (business setup interview)
 # ---------------------------------------------------------------------------
 @app.post("/webhook/onboarding")
@@ -122,7 +171,7 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
             return JSONResponse({"text": "Connecting you now!", "action": "transfer", "transferNumber": state["transfer_number"]})
         else:
             active_onboarding.pop(session_id, None)
-            return JSONResponse({"text": "No problem! You'll get a summary email shortly, and your receptionist is ready to take calls. Have a great day!", "hangup": True})
+            return JSONResponse({"text": "No problem! We'll send a summary to your email shortly — your receptionist is live and ready to take calls. Have a great day!", "hangup": True})
 
     caller_text = data.get("transcript") or payload.get("text") or payload.get("transcript") or payload.get("message", "")
     if not caller_text:
