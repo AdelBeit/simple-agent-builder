@@ -31,12 +31,14 @@ If they choose manual, collect these fields one at a time:
 
 Regardless of path, the owner's email is REQUIRED before you can finish. Do not output the done JSON until you have a confirmed email address.
 
-Once everything is confirmed AND you have a valid email address, give a natural 1-2 sentence spoken summary of what was collected — like a receptionist reading back notes — then say "I'll send a summary to [email]. Welcome to LeadSaver!"
+Once everything is confirmed AND you have a valid email address, give a natural 1-2 sentence spoken summary, then say "I'll send a summary to [email]. Welcome to LeadSaver!"
 
 Example: "Alright, so I've got [Business Name], reachable at [phone], open [hours]. I'll send a summary to [email]. Welcome to LeadSaver!"
 
-Then on the same turn, also output a JSON block (no markdown, the caller will NOT hear this part) in this exact format:
-{"done": true, "business": {"name": "", "phone": "", "website_url": "", "contact_form_url": "", "hours": "", "services": [], "owner_email": ""}}
+Then on a NEW LINE output exactly the tag [DATA] followed immediately by the JSON (no space, no markdown):
+[DATA]{"done": true, "business": {"name": "", "phone": "", "website_url": "", "contact_form_url": "", "hours": "", "services": [], "owner_email": ""}}
+
+The [DATA] tag and everything after it will NOT be spoken — only the text before [DATA] is read aloud.
 
 IMPORTANT: The owner_email field must never be empty in the JSON. If you don't have a confirmed email, keep asking before outputting done.
 
@@ -82,7 +84,7 @@ BEGIN_MESSAGE = (
     "or would you prefer to enter everything yourself?"
 )
 
-DONE_SIGNAL = '"done": true'
+DONE_SIGNAL = '[DATA]'
 URL_PATTERN = re.compile(r'https?://[^\s]+|localhost:[0-9]+[^\s]*', re.IGNORECASE)
 
 
@@ -128,11 +130,9 @@ def get_onboarding_reply(history: list[dict], message: str,
 
     if DONE_SIGNAL in reply:
         try:
-            json_start = reply.index("{")
-            json_str = reply[json_start:reply.rindex("}") + 1]
-            data = json.loads(json_str)
-            # Strip the JSON from the spoken reply — only the natural language gets read aloud
-            spoken_reply = reply[:json_start].strip()
+            spoken_reply, _, json_part = reply.partition("[DATA]")
+            spoken_reply = spoken_reply.strip()
+            data = json.loads(json_part.strip())
             return spoken_reply, data.get("business")
         except Exception:
             pass
