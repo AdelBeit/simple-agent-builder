@@ -91,10 +91,8 @@ async def handle_call(request: Request, background_tasks: BackgroundTasks):
 
 
 # ---------------------------------------------------------------------------
-# Webhook: Unified greeter + onboarding agent (one flow, no transfer)
+# Webhook: Inbound agent — one conversation handles pitch + onboarding
 # ---------------------------------------------------------------------------
-active_greeter: dict[str, dict] = {}  # kept for call_ended cleanup
-
 
 @app.post("/webhook/greeter")
 async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
@@ -102,11 +100,9 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
     data = payload.get("data", payload)
     event = payload.get("event") or payload.get("type", "")
     session_id = (data.get("callId") or payload.get("callId") or
-                  data.get("id") or payload.get("id") or
-                  "unknown")
+                  data.get("id") or payload.get("id") or "unknown")
 
     if event == "agent.call_ended":
-        active_greeter.pop(session_id, None)
         active_onboarding.pop(session_id, None)
         active_calls.pop(session_id, None)
         return JSONResponse({"status": "ok"})
@@ -114,77 +110,10 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
     agent_id = payload.get("agentId") or data.get("agentId", "")
     print(f"[FLOW] session={session_id[-8:]} agentId={agent_id[-8:] if agent_id else 'none'}")
 
-    # Route demo business agent → live call handler; everything else goes through greeter flow
-    if agent_id == AGENTPHONE_AGENT_ID:
+    if agent_id == AGENTPHONE_AGENT_ID or session_id in active_calls:
         return await handle_call(request, background_tasks)
 
-    # Route to active call (demo business receptionist)
-    if session_id in active_calls:
-        return await handle_call(request, background_tasks)
-
-    # Once session is in onboarding state, keep routing there
-    if session_id in active_onboarding:
-        return await handle_onboarding(request, background_tasks)
-
-    caller_text = data.get("transcript") or payload.get("text", "")
-
-    if session_id not in active_greeter:
-        active_greeter[session_id] = {"turns": 0}
-        if not caller_text:
-            return JSONResponse({"text": "", "hangup": False})
-
-    if not caller_text:
-        return JSONResponse({"text": "", "hangup": False})
-
-    state = active_greeter[session_id]
-    state["turns"] += 1
-
-    SETUP_SIGNALS = ["yes", "set me up", "sign me up", "let's do it", "get started",
-                     "onboard", "i'm in", "ready", "go ahead", "set up", "setup",
-                     "sure", "absolutely", "please", "definitely"]
-
-    if any(s in caller_text.lower() for s in SETUP_SIGNALS):
-        # Seamlessly begin onboarding — same call, no transfer
-        active_greeter.pop(session_id, None)
-        active_onboarding[session_id] = {
-            "history": [{"role": "model", "parts": [ONBOARDING_BEGIN]}],
-            "transcript": f"\nAgent: {ONBOARDING_BEGIN}",
-            "awaiting_transfer": False,
-            "transfer_number": "",
-        }
-        print(f"[FLOW] session={session_id[-8:]} starting onboarding")
-        return JSONResponse({"text": "Great, let's get you set up!", "hangup": False})
-
-    # Answer questions about LeadSaver
-    from google import genai as _genai
-    from google.genai import types as _types
-    from config import GEMINI_API_KEY, GEMINI_MODEL
-    _client = _genai.Client(api_key=GEMINI_API_KEY)
-
-    PITCH_PROMPT = """You are a friendly sales agent for LeadSaver, an AI receptionist service for small businesses ($49/month).
-LeadSaver answers missed calls 24/7, collects caller info (name, phone, what they need), and emails it to the owner automatically.
-Answer any questions briefly (1-2 sentences). If they seem interested or ready, ask "Ready to get set up?" and wait for confirmation.
-If not interested after 3 exchanges, politely end the call."""
-
-    history = state.get("history", [])
-    response = _client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=[_types.Content(role=t["role"], parts=[_types.Part(text=t["parts"][0])]) for t in history]
-                 + [_types.Content(role="user", parts=[_types.Part(text=caller_text)])],
-        config=_types.GenerateContentConfig(system_instruction=PITCH_PROMPT),
-    )
-    reply = response.text.strip()
-    print(f"[FLOW] session={session_id[-8:]} turn={state['turns']} reply={reply[:80]!r}")
-
-    state.setdefault("history", [])
-    state["history"].append({"role": "user", "parts": [caller_text]})
-    state["history"].append({"role": "model", "parts": [reply]})
-
-    if state["turns"] >= 4:
-        active_greeter.pop(session_id, None)
-        return JSONResponse({"text": "Thanks for calling LeadSaver! Give us a call back anytime. Have a great day!", "hangup": True})
-
-    return JSONResponse({"text": reply, "hangup": False})
+    return await handle_onboarding(request, background_tasks)
 
 
 # ---------------------------------------------------------------------------
@@ -217,15 +146,16 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
 
     state = active_onboarding[session_id]
 
-    # Handle transfer confirmation turn
-    state = active_onboarding[session_id]
+    # Handle demo transfer confirmation — LLM decided, we act on yes/no from caller
     if state.get("awaiting_transfer"):
         caller_text = data.get("transcript") or payload.get("text", "")
-        yes_signals = ["yes", "yeah", "sure", "yep", "go ahead", "connect", "transfer", "sounds good", "please", "absolutely"]
         print(f"[FLOW] Transfer confirmation — caller said: {caller_text!r}")
-        if any(s in caller_text.lower() for s in yes_signals):
+        # Use Gemini to interpret yes/no naturally
+        from google import genai as _g; from google.genai import types as _t; from config import GEMINI_API_KEY, GEMINI_MODEL
+        _gc = _g.Client(api_key=GEMINI_API_KEY)
+        _r = _gc.models.generate_content(model=GEMINI_MODEL, contents=f'Did this person say yes to trying a demo? Reply only YES or NO.\n\n"{caller_text}"')
+        if "YES" in _r.text.upper():
             active_onboarding.pop(session_id, None)
-            # In-place switch to business receptionist — action:transfer doesn't work reliably
             business = get_business_by_number(state["transfer_number"])
             demo_begin = build_begin_message(business or {})
             active_calls[session_id] = {
@@ -234,11 +164,11 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
                 "business": business,
                 "caller_number": data.get("from") or payload.get("from", ""),
             }
-            print(f"[ONBOARDING→DEMO] session={session_id[-8:]} switching to business receptionist")
+            print(f"[FLOW] session={session_id[-8:]} switching to demo receptionist")
             return JSONResponse({"text": demo_begin, "hangup": False})
         else:
             active_onboarding.pop(session_id, None)
-            return JSONResponse({"text": "No problem! We'll send a summary to your email shortly — your receptionist is live and ready to take calls. Have a great day!", "hangup": True})
+            return JSONResponse({"text": "No problem! We'll send a summary to your email. Your receptionist is live and ready. Have a great day!", "hangup": True})
 
     caller_text = data.get("transcript") or payload.get("text") or payload.get("transcript") or payload.get("message", "")
     if not caller_text:
@@ -251,16 +181,9 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
 
     state["transcript"] += f"\nOwner: {caller_text}"
 
-    # Detect URL in caller's message OR from conversation history (Gemini may have confirmed it)
+    # Detect URL in caller's message — triggers scrape if found
     scraped_data = None
     url = extract_url(caller_text)
-    if not url and not state.get("scraped"):
-        # Check last few history entries for a URL Gemini may have confirmed
-        for turn in reversed(state["history"][-6:]):
-            u = extract_url(turn["parts"][0])
-            if u:
-                url = u
-                break
     if url and not state.get("scraped"):
         state["scraped"] = True
         state["scraping_in_progress"] = True
