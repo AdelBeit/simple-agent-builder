@@ -179,8 +179,8 @@ async def handle_greeter(request: Request):
             "transfer_number": "",
         }
         print(f"[GREETER] Switching session {session_id[-8:]} to onboarding flow")
-        # Return transfer line + onboarding begin message in sequence
-        return JSONResponse({"text": f"{reply} {ONBOARDING_BEGIN}", "hangup": False})
+        # Small pause between greeter sign-off and onboarding begin
+        return JSONResponse({"text": f"{reply} ... {ONBOARDING_BEGIN}", "hangup": False})
 
     if state["turns"] >= 5:
         active_greeter.pop(session_id, None)
