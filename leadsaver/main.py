@@ -177,12 +177,12 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
             "transcript": f"\nAgent: {ONBOARDING_BEGIN}",
             "awaiting_transfer": False,
             "transfer_number": "",
+            "pending_onboarding_begin": True,
         }
         print(f"[GREETER] Switching session {session_id[-8:]} to onboarding flow")
-        # 1.5s pause so TTS finishes the sign-off before onboarding begin plays
-        import asyncio
-        await asyncio.sleep(2)
-        return JSONResponse({"text": f"{reply} {ONBOARDING_BEGIN}", "hangup": False})
+        # Return only the sign-off now. ONBOARDING_BEGIN plays on the next turn
+        # so AgentPhone finishes the sign-off TTS before the onboarding begins.
+        return JSONResponse({"text": reply, "hangup": False})
 
     if state["turns"] >= 5:
         active_greeter.pop(session_id, None)
@@ -216,6 +216,12 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
             "transfer_number": "",
         }
         return JSONResponse({"text": "", "hangup": False})
+
+    # Deliver pending onboarding begin on first turn after greeter transfer
+    state = active_onboarding[session_id]
+    if state.get("pending_onboarding_begin"):
+        state["pending_onboarding_begin"] = False
+        return JSONResponse({"text": ONBOARDING_BEGIN, "hangup": False})
 
     # Handle transfer confirmation turn
     state = active_onboarding[session_id]
