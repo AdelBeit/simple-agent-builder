@@ -153,7 +153,7 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
         # Use Gemini to interpret yes/no naturally
         from google import genai as _g; from google.genai import types as _t; from config import GEMINI_API_KEY, GEMINI_MODEL
         _gc = _g.Client(api_key=GEMINI_API_KEY)
-        _r = _gc.models.generate_content(model=GEMINI_MODEL, contents=f'Did this person say yes to trying a demo? Reply only YES or NO.\n\n"{caller_text}"')
+        _r = _gc.models.generate_content(model=GEMINI_MODEL, contents=f'Is this person agreeing, saying yes, or wanting to proceed? Reply only YES or NO.\n\n"{caller_text}"')
         if "YES" in _r.text.upper():
             active_onboarding.pop(session_id, None)
             business = get_business_by_number(state["transfer_number"])
