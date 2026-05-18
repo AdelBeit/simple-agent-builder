@@ -1,5 +1,39 @@
+import json
 import sqlite3
 from config import DB_PATH
+
+_services_cache: dict[int, list[str]] = {}
+
+
+def _parse_services_from_profile(business: dict) -> dict:
+    biz_id = business.get("id")
+    if business.get("services") and isinstance(business["services"], list):
+        return business
+    if biz_id and biz_id in _services_cache:
+        business["services"] = _services_cache[biz_id]
+        return business
+
+    profile = business.get("profile_text", "")
+    if profile:
+        try:
+            from google import genai
+            from config import GEMINI_API_KEY, GEMINI_MODEL
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=f"Extract the list of services from this business profile. Return only a JSON array of strings, nothing else.\n\n{profile}",
+            )
+            services = json.loads(response.text.strip())
+            if isinstance(services, list):
+                business["services"] = services
+                if biz_id:
+                    _services_cache[biz_id] = services
+                return business
+        except Exception:
+            pass
+
+    business["services"] = []
+    return business
 
 
 def get_db():
@@ -98,11 +132,11 @@ def get_business(business_id: int) -> dict | None:
     conn = get_db()
     row = conn.execute("SELECT * FROM businesses WHERE id = ?", (business_id,)).fetchone()
     conn.close()
-    return dict(row) if row else None
+    return _parse_services_from_profile(dict(row)) if row else None
 
 
 def get_business_by_number(agentphone_number: str) -> dict | None:
     conn = get_db()
     row = conn.execute("SELECT * FROM businesses WHERE agentphone_number = ?", (agentphone_number,)).fetchone()
     conn.close()
-    return dict(row) if row else None
+    return _parse_services_from_profile(dict(row)) if row else None
