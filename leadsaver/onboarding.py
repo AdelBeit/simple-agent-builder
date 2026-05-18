@@ -46,6 +46,7 @@ Rules:
 - If the owner gives partial info, accept it and move to the next missing field.
 - Be warm and efficient — this is their first impression of LeadSaver.
 - Never use technical jargon like "scrape", "database", "webhook", or "null".
+- NEVER output [SCRAPED DATA] blocks yourself. Those are injected by the system — you only read them when they appear. Never reproduce or generate them.
 - If the owner asks you to spell their email, read it back letter by letter using NATO phonetic alphabet immediately: "A as in Alpha, D as in Delta..." — do this before anything else.
 
 Example dialog (website path):
@@ -120,6 +121,10 @@ def get_onboarding_reply(history: list[dict], message: str,
     )
 
     reply = response.text.strip()
+
+    # Strip any hallucinated [SCRAPED DATA] blocks Gemini might generate
+    if "[SCRAPED DATA]" in reply:
+        reply = reply[:reply.index("[SCRAPED DATA]")].strip()
 
     if DONE_SIGNAL in reply:
         try:

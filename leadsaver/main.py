@@ -110,7 +110,9 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
 
     # Route demo business agent calls to handle_call
     agent_id = payload.get("agentId") or data.get("agentId", "")
+    print(f"[GREETER] agentId={agent_id!r} AGENTPHONE_AGENT_ID={AGENTPHONE_AGENT_ID!r} match={agent_id == AGENTPHONE_AGENT_ID}")
     if agent_id == AGENTPHONE_AGENT_ID:
+        print(f"[GREETER] Routing to handle_call for demo agent")
         return await handle_call(request, background_tasks)
 
     # Once session is in onboarding state, keep routing there
