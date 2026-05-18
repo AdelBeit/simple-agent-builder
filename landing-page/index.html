@@ -6,89 +6,67 @@
   <meta name="description" content="LeadSaver - AI receptionist that answers missed calls 24/7 and captures every lead. $49/month flat rate.">
   <title>LeadSaver | Never Miss a Customer Call Again</title>
   <style>
-    /* ═══════════════════════════════════════════════════════════════
-       RESET & BASE
-       ═══════════════════════════════════════════════════════════════ */
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       color: #1a1a1a;
       line-height: 1.6;
-      overflow-x: hidden;
     }
 
-    /* ═══════════════════════════════════════════════════════════════
-       THREE.JS CANVAS
-       ═══════════════════════════════════════════════════════════════ */
-    #three-canvas {
+    /* ── HEADER ─────────────────────────────────────────────── */
+    header {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100vh;
-      z-index: 0;
-      background: linear-gradient(135deg, #0a1f44 0%, #1a3a6e 100%);
-    }
-
-    /* ═══════════════════════════════════════════════════════════════
-       HEADER
-       ═══════════════════════════════════════════════════════════════ */
-    header {
-      position: relative;
-      z-index: 10;
-      padding: 20px 24px;
+      right: 0;
+      z-index: 100;
+      padding: 16px 32px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      max-width: 1200px;
-      margin: 0 auto;
+      background: rgba(10, 31, 68, 0.95);
+      backdrop-filter: blur(12px);
     }
 
     .logo {
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       font-weight: 900;
       color: #fff;
-      letter-spacing: -0.5px;
     }
 
-    .logo span {
-      color: #e8321c;
-    }
+    .logo span { color: #e8321c; }
 
-    /* ═══════════════════════════════════════════════════════════════
-       HERO SECTION
-       ═══════════════════════════════════════════════════════════════ */
-    .hero {
-      position: relative;
-      z-index: 1;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 120px 24px 80px;
-    }
-
-    .hero-content {
-      max-width: 800px;
+    .header-cta {
+      background: #e8321c;
       color: #fff;
+      padding: 10px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+
+    .header-cta:hover { background: #c4270f; }
+
+    /* ── HERO ───────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(160deg, #0a1f44 0%, #1a3a6e 50%, #0d2d5c 100%);
+      color: #fff;
+      padding: 160px 32px 120px;
+      text-align: center;
     }
 
     .hero h1 {
-      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-size: clamp(2.4rem, 5.5vw, 4rem);
       font-weight: 900;
       line-height: 1.1;
       margin-bottom: 24px;
-      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     .hero h1 em {
@@ -96,12 +74,11 @@
       font-style: normal;
     }
 
-    .hero p {
-      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
-      color: #d0ddf5;
-      margin-bottom: 40px;
-      line-height: 1.5;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    .hero .subtitle {
+      font-size: clamp(1.1rem, 2vw, 1.35rem);
+      color: #b8cef0;
+      max-width: 600px;
+      margin: 0 auto 48px;
     }
 
     .hero-ctas {
@@ -109,80 +86,69 @@
       gap: 16px;
       justify-content: center;
       flex-wrap: wrap;
-      margin-bottom: 48px;
+      margin-bottom: 56px;
     }
 
     .btn-primary {
       background: #e8321c;
       color: #fff;
-      padding: 16px 36px;
+      padding: 16px 40px;
       border-radius: 8px;
       font-size: 1.1rem;
       font-weight: 700;
       text-decoration: none;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 20px rgba(232, 50, 28, 0.4);
+      transition: all 0.2s;
+      box-shadow: 0 4px 16px rgba(232, 50, 28, 0.3);
     }
 
     .btn-primary:hover {
       background: #c4270f;
       transform: translateY(-2px);
-      box-shadow: 0 6px 30px rgba(232, 50, 28, 0.6);
+      box-shadow: 0 6px 24px rgba(232, 50, 28, 0.4);
     }
 
     .btn-outline {
-      border: 2px solid #fff;
+      border: 2px solid rgba(255,255,255,0.4);
       color: #fff;
-      padding: 15px 36px;
+      padding: 15px 40px;
       border-radius: 8px;
       font-size: 1.1rem;
       font-weight: 700;
       text-decoration: none;
-      transition: all 0.3s ease;
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
+      transition: all 0.2s;
     }
 
     .btn-outline:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: translateY(-2px);
+      border-color: #fff;
+      background: rgba(255,255,255,0.08);
     }
 
-    .hero-trust {
+    .trust-row {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
       color: #8aaed8;
       font-size: 0.95rem;
     }
 
-    .hero-trust strong {
-      color: #f5b800;
-    }
+    .trust-row strong { color: #f5b800; }
 
-    /* ═══════════════════════════════════════════════════════════════
-       CONTENT SECTIONS
-       ═══════════════════════════════════════════════════════════════ */
-    section {
-      position: relative;
-      z-index: 1;
-      background: #fff;
-      padding: 80px 24px;
-    }
-
-    section:nth-child(even) {
-      background: #f4f7fc;
-    }
+    /* ── SECTIONS ───────────────────────────────────────────── */
+    section { padding: 96px 32px; }
 
     .section-inner {
-      max-width: 1200px;
+      max-width: 1100px;
       margin: 0 auto;
     }
 
     .section-title {
       text-align: center;
-      margin-bottom: 60px;
+      margin-bottom: 64px;
     }
 
     .section-title h2 {
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
       font-weight: 900;
       color: #0a1f44;
       margin-bottom: 12px;
@@ -191,730 +157,485 @@
     .section-title p {
       font-size: 1.1rem;
       color: #555;
+      max-width: 600px;
+      margin: 0 auto;
     }
 
-    /* ═══════════════════════════════════════════════════════════════
-       PROBLEM SECTION
-       ═══════════════════════════════════════════════════════════════ */
-    .problem-content {
+    /* ── PROBLEM ────────────────────────────────────────────── */
+    .problem { background: #f8f9fc; }
+
+    .problem-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 60px;
+      gap: 64px;
       align-items: center;
     }
 
-    .problem-visual {
-      font-size: 8rem;
-      text-align: center;
-    }
-
-    .problem-text h3 {
-      font-size: 2rem;
-      color: #e8321c;
-      margin-bottom: 20px;
+    .problem-stat {
+      font-size: clamp(3rem, 6vw, 5rem);
       font-weight: 900;
+      color: #e8321c;
+      line-height: 1;
+      margin-bottom: 16px;
     }
 
-    .problem-text ul {
-      list-style: none;
-      padding: 0;
-    }
-
-    .problem-text li {
-      padding: 12px 0;
-      padding-left: 32px;
-      position: relative;
+    .problem-stat-label {
+      font-size: 1.2rem;
       color: #333;
-      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 24px;
     }
 
-    .problem-text li::before {
-      content: "✗";
+    .problem-text { color: #555; font-size: 1.05rem; }
+
+    .pain-points { list-style: none; }
+
+    .pain-points li {
+      padding: 14px 0;
+      padding-left: 28px;
+      position: relative;
+      font-size: 1.05rem;
+      color: #333;
+      border-bottom: 1px solid #e8ecf4;
+    }
+
+    .pain-points li::before {
+      content: "";
       position: absolute;
       left: 0;
-      color: #e8321c;
-      font-weight: 900;
-      font-size: 1.2rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 8px;
+      height: 8px;
+      background: #e8321c;
+      border-radius: 50%;
     }
 
-    /* ═══════════════════════════════════════════════════════════════
-       HOW IT WORKS
-       ═══════════════════════════════════════════════════════════════ */
+    /* ── STEPS ──────────────────────────────────────────────── */
     .steps-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 40px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 48px;
+      position: relative;
+    }
+
+    .steps-grid::before {
+      content: "";
+      position: absolute;
+      top: 48px;
+      left: 15%;
+      right: 15%;
+      height: 2px;
+      background: linear-gradient(90deg, #e8321c, #0a1f44);
+      opacity: 0.2;
     }
 
     .step {
       text-align: center;
-      padding: 40px 24px;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-      transition: transform 0.3s ease;
+      position: relative;
     }
 
-    .step:hover {
-      transform: translateY(-8px);
-    }
-
-    .step-icon {
-      font-size: 4rem;
-      margin-bottom: 20px;
-    }
-
-    .step-number {
-      display: inline-block;
-      width: 40px;
-      height: 40px;
-      background: #e8321c;
+    .step-num {
+      width: 56px;
+      height: 56px;
+      background: #0a1f44;
       color: #fff;
       border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
       font-weight: 900;
-      line-height: 40px;
-      margin-bottom: 16px;
+      margin: 0 auto 24px;
+      position: relative;
+      z-index: 1;
     }
 
     .step h3 {
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       color: #0a1f44;
       margin-bottom: 12px;
-      font-weight: 800;
     }
 
     .step p {
       color: #555;
       font-size: 1rem;
-      line-height: 1.6;
     }
 
-    /* ═══════════════════════════════════════════════════════════════
-       FEATURES
-       ═══════════════════════════════════════════════════════════════ */
+    /* ── FEATURES ───────────────────────────────────────────── */
+    .features { background: #f8f9fc; }
+
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 32px;
     }
 
     .feature-card {
-      padding: 32px;
       background: #fff;
+      padding: 36px 28px;
       border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-      border-left: 4px solid #e8321c;
-      transition: all 0.3s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04);
+      transition: transform 0.2s, box-shadow 0.2s;
     }
 
     .feature-card:hover {
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
       transform: translateY(-4px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 16px 40px rgba(0,0,0,0.08);
     }
 
     .feature-icon {
-      font-size: 2.5rem;
+      font-size: 2rem;
       margin-bottom: 16px;
       display: block;
     }
 
     .feature-card h3 {
-      font-size: 1.3rem;
+      font-size: 1.15rem;
       color: #0a1f44;
-      margin-bottom: 12px;
-      font-weight: 800;
+      margin-bottom: 10px;
+      font-weight: 700;
     }
 
     .feature-card p {
       color: #555;
-      font-size: 1rem;
-      line-height: 1.6;
+      font-size: 0.95rem;
     }
 
-    /* ═══════════════════════════════════════════════════════════════
-       PRICING
-       ═══════════════════════════════════════════════════════════════ */
+    /* ── PRICING ────────────────────────────────────────────── */
     .pricing-card {
-      max-width: 500px;
+      max-width: 480px;
       margin: 0 auto;
       background: #fff;
       border-radius: 16px;
-      padding: 48px 40px;
-      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12);
+      padding: 56px 48px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 24px 64px rgba(0,0,0,0.1);
       text-align: center;
-      border: 3px solid #e8321c;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pricing-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #e8321c, #f5b800);
     }
 
     .price {
-      font-size: 4rem;
+      font-size: 4.5rem;
       font-weight: 900;
       color: #0a1f44;
-      margin-bottom: 8px;
+      line-height: 1;
     }
 
     .price-period {
       color: #666;
-      font-size: 1.2rem;
-      margin-bottom: 32px;
+      font-size: 1.1rem;
+      margin-bottom: 36px;
       display: block;
     }
 
-    .pricing-features {
+    .pricing-list {
       list-style: none;
-      padding: 0;
-      margin-bottom: 32px;
       text-align: left;
+      margin-bottom: 40px;
     }
 
-    .pricing-features li {
-      padding: 12px 0;
-      padding-left: 32px;
+    .pricing-list li {
+      padding: 10px 0;
+      padding-left: 28px;
       position: relative;
       color: #333;
-      font-size: 1.05rem;
+      font-size: 1rem;
     }
 
-    .pricing-features li::before {
-      content: "✓";
+    .pricing-list li::before {
+      content: "\2713";
       position: absolute;
       left: 0;
       color: #27ae60;
       font-weight: 900;
-      font-size: 1.3rem;
     }
 
-    /* ═══════════════════════════════════════════════════════════════
-       SOCIAL PROOF
-       ═══════════════════════════════════════════════════════════════ */
-    .industries {
+    /* ── INDUSTRIES ─────────────────────────────────────────── */
+    .industries { background: #f8f9fc; }
+
+    .industry-grid {
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
-      gap: 24px;
+      gap: 16px;
     }
 
-    .industry-badge {
+    .industry-tag {
       background: #fff;
-      padding: 16px 28px;
-      border-radius: 50px;
-      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 100px;
+      font-weight: 600;
       color: #0a1f44;
-      font-size: 1rem;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-      transition: all 0.3s ease;
+      font-size: 0.95rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
 
-    .industry-badge:hover {
-      transform: scale(1.05);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    }
-
-    /* ═══════════════════════════════════════════════════════════════
-       FINAL CTA
-       ═══════════════════════════════════════════════════════════════ */
+    /* ── FINAL CTA ──────────────────────────────────────────── */
     .final-cta {
-      background: linear-gradient(135deg, #0a1f44 0%, #1a3a6e 100%);
+      background: linear-gradient(160deg, #0a1f44 0%, #1a3a6e 100%);
       color: #fff;
       text-align: center;
-      padding: 100px 24px;
+      padding: 120px 32px;
     }
 
     .final-cta h2 {
-      font-size: clamp(2rem, 5vw, 3rem);
+      font-size: clamp(2rem, 4.5vw, 3rem);
       font-weight: 900;
-      margin-bottom: 32px;
-      color: #fff;
+      margin-bottom: 16px;
     }
 
-    .phone-number {
-      font-size: clamp(2rem, 5vw, 3.5rem);
+    .final-cta .subtitle {
+      font-size: 1.15rem;
+      color: #b8cef0;
+      margin-bottom: 40px;
+    }
+
+    .phone-link {
+      display: inline-block;
+      font-size: clamp(2rem, 5vw, 3.2rem);
       font-weight: 900;
       color: #f5b800;
       text-decoration: none;
-      display: inline-block;
-      margin-bottom: 20px;
-      transition: all 0.3s ease;
+      margin-bottom: 16px;
+      transition: color 0.2s;
     }
 
-    .phone-number:hover {
-      color: #fff;
-      transform: scale(1.05);
-    }
+    .phone-link:hover { color: #fff; }
 
-    .final-cta p {
-      font-size: 1.2rem;
-      color: #b8cef0;
-    }
-
-    /* ═══════════════════════════════════════════════════════════════
-       FOOTER
-       ═══════════════════════════════════════════════════════════════ */
-    footer {
-      background: #0a1f44;
+    .final-cta .note {
       color: #8aaed8;
-      padding: 40px 24px;
+      font-size: 1rem;
+    }
+
+    /* ── FOOTER ─────────────────────────────────────────────── */
+    footer {
+      background: #071633;
+      color: #8aaed8;
+      padding: 48px 32px;
       text-align: center;
     }
 
-    .footer-inner {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-
-    .footer-name {
-      color: #fff;
-      font-size: 1.3rem;
-      font-weight: 800;
-      margin-bottom: 16px;
+    footer .logo {
+      margin-bottom: 12px;
+      font-size: 1.2rem;
     }
 
     footer p {
       font-size: 0.9rem;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
 
     footer a {
       color: #8aaed8;
       text-decoration: none;
-      transition: color 0.2s;
     }
 
-    footer a:hover {
-      color: #fff;
-    }
+    footer a:hover { color: #fff; }
 
     .copyright {
       margin-top: 24px;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: #4a6a9a;
     }
 
-    /* ═══════════════════════════════════════════════════════════════
-       RESPONSIVE
-       ═══════════════════════════════════════════════════════════════ */
+    /* ── RESPONSIVE ─────────────────────────────────────────── */
     @media (max-width: 768px) {
-      .problem-content {
-        grid-template-columns: 1fr;
-        gap: 40px;
-      }
-
-      .problem-visual {
-        font-size: 5rem;
-      }
-
-      .steps-grid,
-      .features-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .hero-ctas {
-        flex-direction: column;
-      }
-
-      .btn-primary,
-      .btn-outline {
-        width: 100%;
-        max-width: 300px;
-      }
-    }
-
-    /* ═══════════════════════════════════════════════════════════════
-       ACCESSIBILITY
-       ═══════════════════════════════════════════════════════════════ */
-    @media (prefers-reduced-motion: reduce) {
-      html {
-        scroll-behavior: auto;
-      }
-
-      * {
-        animation: none !important;
-        transition: none !important;
-      }
-    }
-
-    /* Hide canvas if user prefers reduced motion */
-    @media (prefers-reduced-motion: reduce) {
-      #three-canvas {
-        display: none;
-      }
-
-      .hero {
-        background: linear-gradient(135deg, #0a1f44 0%, #1a3a6e 100%);
-      }
+      header { padding: 12px 20px; }
+      section { padding: 72px 20px; }
+      .hero { padding: 130px 20px 80px; }
+      .problem-grid { grid-template-columns: 1fr; gap: 40px; }
+      .steps-grid { grid-template-columns: 1fr; gap: 36px; }
+      .steps-grid::before { display: none; }
+      .features-grid { grid-template-columns: 1fr; }
+      .hero-ctas { flex-direction: column; align-items: center; }
+      .pricing-card { padding: 40px 28px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       THREE.JS CANVAS
-       ═══════════════════════════════════════════════════════════════ -->
-  <canvas id="three-canvas"></canvas>
+<!-- HEADER -->
+<header>
+  <div class="logo">Lead<span>Saver</span></div>
+  <a href="tel:+18148948272" class="header-cta">Get Started</a>
+</header>
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       HEADER
-       ═══════════════════════════════════════════════════════════════ -->
-  <header>
-    <div class="logo">Lead<span>Saver</span></div>
-  </header>
+<!-- HERO -->
+<section class="hero">
+  <h1>Never Miss a <em>Customer Call</em> Again</h1>
+  <p class="subtitle">AI receptionist that answers your missed calls 24/7, captures lead info, and sends it straight to you. Set up in 2 minutes over the phone.</p>
+  <div class="hero-ctas">
+    <a href="tel:+18148948272" class="btn-primary">Call to Get Started: (814) 894-8272</a>
+    <a href="#pricing" class="btn-outline">See Pricing</a>
+  </div>
+  <div class="trust-row">
+    <span><strong>$49/mo</strong> flat rate</span>
+    <span><strong>2 min</strong> phone setup</span>
+    <span><strong>24/7</strong> coverage</span>
+  </div>
+</section>
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       HERO SECTION
-       ═══════════════════════════════════════════════════════════════ -->
-  <section class="hero">
-    <div class="hero-content">
-      <h1>Never Miss a <em>Customer Call</em> Again</h1>
-      <p>LeadSaver's AI receptionist answers missed calls 24/7, captures lead information, and submits it directly to your business—so you never lose another customer.</p>
-      <div class="hero-ctas">
-        <a href="tel:+18148948272" class="btn-primary">📞 Call Now: (814) 894-8272</a>
-        <a href="#pricing" class="btn-outline">See Pricing</a>
+<!-- PROBLEM -->
+<section class="problem">
+  <div class="section-inner">
+    <div class="problem-grid">
+      <div>
+        <div class="problem-stat">62%</div>
+        <div class="problem-stat-label">of calls to small businesses go unanswered</div>
+        <p class="problem-text">Every missed call is a potential customer calling your competitor instead. Most won't leave a voicemail or call back.</p>
       </div>
-      <p class="hero-trust">
-        <strong>★ 2-Minute Setup</strong> • 24/7 Coverage • No App Required
-      </p>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════
-       PROBLEM SECTION
-       ═══════════════════════════════════════════════════════════════ -->
-  <section>
-    <div class="section-inner">
-      <div class="section-title">
-        <h2>Every Missed Call Is Money Lost</h2>
-        <p>Small businesses lose over $50,000 per year from missed customer calls</p>
-      </div>
-      <div class="problem-content">
-        <div class="problem-visual">📵</div>
-        <div class="problem-text">
-          <h3>You're Losing Customers Because:</h3>
-          <ul>
-            <li>After-hours calls go straight to voicemail</li>
-            <li>You're too busy with existing customers to answer</li>
-            <li>Unknown numbers get ignored</li>
-            <li>Voicemails rarely get returned in time</li>
-            <li>Competitors answer while you're unavailable</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════
-       HOW IT WORKS
-       ═══════════════════════════════════════════════════════════════ -->
-  <section>
-    <div class="section-inner">
-      <div class="section-title">
-        <h2>How LeadSaver Works</h2>
-        <p>Three simple steps to never miss a lead again</p>
-      </div>
-      <div class="steps-grid">
-        <div class="step">
-          <div class="step-number">1</div>
-          <div class="step-icon">📞</div>
-          <h3>Customer Calls</h3>
-          <p>When you can't answer, your AI receptionist picks up instantly—no rings, no voicemail.</p>
-        </div>
-        <div class="step">
-          <div class="step-number">2</div>
-          <div class="step-icon">🤖</div>
-          <h3>AI Answers</h3>
-          <p>Our natural AI has a friendly conversation, collects their name, phone, and what they need help with.</p>
-        </div>
-        <div class="step">
-          <div class="step-number">3</div>
-          <div class="step-icon">✉️</div>
-          <h3>You Get The Lead</h3>
-          <p>Lead info is automatically submitted to your contact form and emailed to you—ready to follow up.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════
-       FEATURES
-       ═══════════════════════════════════════════════════════════════ -->
-  <section>
-    <div class="section-inner">
-      <div class="section-title">
-        <h2>Everything You Need</h2>
-        <p>Built for small business owners who can't afford to miss calls</p>
-      </div>
-      <div class="features-grid">
-        <div class="feature-card">
-          <span class="feature-icon">🌙</span>
-          <h3>24/7 Availability</h3>
-          <p>Your AI receptionist never sleeps, takes breaks, or misses a call. Always on, always professional.</p>
-        </div>
-        <div class="feature-card">
-          <span class="feature-icon">📋</span>
-          <h3>Automatic Lead Capture</h3>
-          <p>Collects caller name, phone, and issue. Submits directly to your contact form and emails you the details.</p>
-        </div>
-        <div class="feature-card">
-          <span class="feature-icon">⚡</span>
-          <h3>2-Minute Setup</h3>
-          <p>Just call our number. We'll configure your AI receptionist over the phone—no app, no dashboard, no hassle.</p>
-        </div>
-        <div class="feature-card">
-          <span class="feature-icon">💬</span>
-          <h3>Natural Conversations</h3>
-          <p>Powered by advanced AI, your receptionist sounds natural and handles real customer conversations.</p>
-        </div>
-        <div class="feature-card">
-          <span class="feature-icon">💰</span>
-          <h3>Simple Pricing</h3>
-          <p>$49/month flat rate. No setup fees, no hidden costs, no long-term commitment. Cancel anytime.</p>
-        </div>
-        <div class="feature-card">
-          <span class="feature-icon">🔧</span>
-          <h3>Built for Small Business</h3>
-          <p>Designed for plumbers, contractors, roofers, salons, and service businesses who can't afford to miss calls.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════
-       PRICING
-       ═══════════════════════════════════════════════════════════════ -->
-  <section id="pricing">
-    <div class="section-inner">
-      <div class="section-title">
-        <h2>Simple, Transparent Pricing</h2>
-        <p>One flat rate. No surprises.</p>
-      </div>
-      <div class="pricing-card">
-        <div class="price">$49</div>
-        <span class="price-period">per month</span>
-        <ul class="pricing-features">
-          <li>Unlimited missed call handling</li>
-          <li>Lead capture and qualification</li>
-          <li>Automatic form submission</li>
-          <li>Email notifications</li>
-          <li>Natural AI voice conversations</li>
-          <li>2-minute phone setup</li>
-          <li>Cancel anytime</li>
+      <div>
+        <ul class="pain-points">
+          <li>You're on a job site and can't answer</li>
+          <li>After-hours calls go to voicemail</li>
+          <li>Unknown numbers get screened out</li>
+          <li>Voicemails pile up and never get returned</li>
+          <li>Your competitor picks up while you don't</li>
         </ul>
-        <a href="tel:+18148948272" class="btn-primary">Get Started Now</a>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       SOCIAL PROOF
-       ═══════════════════════════════════════════════════════════════ -->
-  <section>
-    <div class="section-inner">
-      <div class="section-title">
-        <h2>Built For Service Businesses</h2>
-        <p>Perfect for any business that takes customer calls</p>
+<!-- HOW IT WORKS -->
+<section>
+  <div class="section-inner">
+    <div class="section-title">
+      <h2>How It Works</h2>
+      <p>LeadSaver handles missed calls so you don't have to</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Customer Calls</h3>
+        <p>When you can't answer, LeadSaver picks up instantly. No voicemail, no hold music.</p>
       </div>
-      <div class="industries">
-        <div class="industry-badge">🔧 Plumbers</div>
-        <div class="industry-badge">🏠 Contractors</div>
-        <div class="industry-badge">🏗️ Roofers</div>
-        <div class="industry-badge">💇 Salons</div>
-        <div class="industry-badge">⚡ Electricians</div>
-        <div class="industry-badge">❄️ HVAC</div>
-        <div class="industry-badge">🌿 Landscaping</div>
-        <div class="industry-badge">🚗 Auto Repair</div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>AI Collects Info</h3>
+        <p>A natural-sounding AI receptionist gets their name, number, and what they need help with.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>You Get the Lead</h3>
+        <p>Lead details are emailed to you and submitted to your contact form automatically.</p>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       FINAL CTA
-       ═══════════════════════════════════════════════════════════════ -->
-  <section class="final-cta">
-    <div class="section-inner">
-      <h2>Set Up Your AI Receptionist in 2 Minutes</h2>
-      <a href="tel:+18148948272" class="phone-number">(814) 894-8272</a>
-      <p>Call now and we'll walk you through setup. No app download, no complicated forms.</p>
+<!-- FEATURES -->
+<section class="features">
+  <div class="section-inner">
+    <div class="section-title">
+      <h2>Everything You Need, Nothing You Don't</h2>
     </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════
-       FOOTER
-       ═══════════════════════════════════════════════════════════════ -->
-  <footer>
-    <div class="footer-inner">
-      <div class="footer-name">LeadSaver</div>
-      <p>AI Receptionist for Small Businesses</p>
-      <p><a href="tel:+18148948272">(814) 894-8272</a></p>
-      <p class="copyright">© 2026 LeadSaver. All rights reserved.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-icon">🌙</span>
+        <h3>Always On</h3>
+        <p>Nights, weekends, holidays. Your AI receptionist never takes a day off.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">💬</span>
+        <h3>Natural Conversations</h3>
+        <p>Callers talk to an AI that sounds like a real receptionist, not a robot.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">📧</span>
+        <h3>Instant Notifications</h3>
+        <p>Get an email the moment a lead is captured. Follow up while they're still warm.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">📋</span>
+        <h3>Auto Form Submission</h3>
+        <p>Leads are submitted directly to your website's contact form. No manual entry.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">📞</span>
+        <h3>Phone Setup Only</h3>
+        <p>No apps, no dashboards. Call us and you're live in 2 minutes.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🚫</span>
+        <h3>No Contracts</h3>
+        <p>Month-to-month. Cancel anytime with a single call.</p>
+      </div>
     </div>
-  </footer>
+  </div>
+</section>
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       THREE.JS SCRIPT
-       ═══════════════════════════════════════════════════════════════ -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js"></script>
-  <script>
-    // Check if user prefers reduced motion
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+<!-- PRICING -->
+<section id="pricing">
+  <div class="section-inner">
+    <div class="section-title">
+      <h2>One Price. No Surprises.</h2>
+    </div>
+    <div class="pricing-card">
+      <div class="price">$49</div>
+      <span class="price-period">per month &mdash; flat rate</span>
+      <ul class="pricing-list">
+        <li>Unlimited missed call handling</li>
+        <li>AI lead capture &amp; qualification</li>
+        <li>Automatic contact form submission</li>
+        <li>Email notifications per lead</li>
+        <li>Natural voice conversations</li>
+        <li>2-minute phone setup</li>
+        <li>Cancel anytime</li>
+      </ul>
+      <a href="tel:+18148948272" class="btn-primary">Call to Get Started</a>
+    </div>
+  </div>
+</section>
 
-    if (!prefersReducedMotion) {
-      // ═══════════════════════════════════════════════════════════════
-      // SCENE SETUP
-      // ═══════════════════════════════════════════════════════════════
-      const canvas = document.getElementById('three-canvas');
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
-      camera.position.z = 1000;
+<!-- INDUSTRIES -->
+<section class="industries">
+  <div class="section-inner">
+    <div class="section-title">
+      <h2>Built for Service Businesses</h2>
+      <p>If customers call you, LeadSaver works for you</p>
+    </div>
+    <div class="industry-grid">
+      <div class="industry-tag">Plumbers</div>
+      <div class="industry-tag">Contractors</div>
+      <div class="industry-tag">Roofers</div>
+      <div class="industry-tag">Electricians</div>
+      <div class="industry-tag">HVAC</div>
+      <div class="industry-tag">Salons</div>
+      <div class="industry-tag">Landscaping</div>
+      <div class="industry-tag">Auto Repair</div>
+      <div class="industry-tag">Dentists</div>
+      <div class="industry-tag">Cleaning Services</div>
+    </div>
+  </div>
+</section>
 
-      const renderer = new THREE.WebGLRenderer({
-        canvas: canvas,
-        antialias: true,
-        alpha: true
-      });
+<!-- FINAL CTA -->
+<section class="final-cta">
+  <h2>Ready to Stop Losing Customers?</h2>
+  <p class="subtitle">Call us and your AI receptionist will be live in 2 minutes.</p>
+  <a href="tel:+18148948272" class="phone-link">(814) 894-8272</a>
+  <p class="note">No app. No dashboard. Just call.</p>
+</section>
 
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-      // ═══════════════════════════════════════════════════════════════
-      // WAVE PARTICLES SETUP
-      // ═══════════════════════════════════════════════════════════════
-      const SEPARATION = 100;
-      const AMOUNTX = window.innerWidth < 768 ? 30 : 60;
-      const AMOUNTY = window.innerWidth < 768 ? 30 : 60;
-
-      let count = 0;
-      let mouseX = 0, mouseY = 0;
-
-      const numParticles = AMOUNTX * AMOUNTY;
-
-      const positions = new Float32Array(numParticles * 3);
-      const scales = new Float32Array(numParticles);
-
-      let i = 0, j = 0;
-
-      for (let ix = 0; ix < AMOUNTX; ix++) {
-        for (let iy = 0; iy < AMOUNTY; iy++) {
-          positions[i] = ix * SEPARATION - ((AMOUNTX * SEPARATION) / 2);
-          positions[i + 1] = 0;
-          positions[i + 2] = iy * SEPARATION - ((AMOUNTY * SEPARATION) / 2);
-
-          scales[j] = 1;
-
-          i += 3;
-          j++;
-        }
-      }
-
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      geometry.setAttribute('scale', new THREE.BufferAttribute(scales, 1));
-
-      // Custom shader material with brand colors
-      const material = new THREE.ShaderMaterial({
-        uniforms: {
-          color: { value: new THREE.Color(0xe8321c) }, // LeadSaver red
-        },
-        vertexShader: `
-          attribute float scale;
-          varying vec3 vColor;
-
-          void main() {
-            vColor = vec3(0.91, 0.19, 0.11); // Red base color
-
-            // Mix in blue gradient based on position
-            float blueMix = (position.y + 300.0) / 600.0;
-            vColor = mix(vColor, vec3(0.04, 0.12, 0.27), blueMix * 0.6);
-
-            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = scale * (300.0 / -mvPosition.z);
-            gl_Position = projectionMatrix * mvPosition;
-          }
-        `,
-        fragmentShader: `
-          varying vec3 vColor;
-
-          void main() {
-            if (length(gl_PointCoord - vec2(0.5, 0.5)) > 0.475) discard;
-
-            // Soft glow effect
-            float dist = length(gl_PointCoord - vec2(0.5));
-            float alpha = 1.0 - smoothstep(0.3, 0.475, dist);
-
-            gl_FragColor = vec4(vColor, alpha * 0.9);
-          }
-        `,
-        transparent: true,
-        depthTest: false,
-        blending: THREE.AdditiveBlending
-      });
-
-      const particles = new THREE.Points(geometry, material);
-      scene.add(particles);
-
-      // ═══════════════════════════════════════════════════════════════
-      // MOUSE INTERACTION
-      // ═══════════════════════════════════════════════════════════════
-      document.addEventListener('mousemove', (event) => {
-        mouseX = event.clientX - window.innerWidth / 2;
-        mouseY = event.clientY - window.innerHeight / 2;
-      });
-
-      document.addEventListener('touchmove', (event) => {
-        if (event.touches.length === 1) {
-          event.preventDefault();
-          mouseX = event.touches[0].pageX - window.innerWidth / 2;
-          mouseY = event.touches[0].pageY - window.innerHeight / 2;
-        }
-      }, { passive: false });
-
-      // ═══════════════════════════════════════════════════════════════
-      // ANIMATION LOOP
-      // ═══════════════════════════════════════════════════════════════
-      function animate() {
-        requestAnimationFrame(animate);
-
-        count += 0.1;
-
-        let i = 0, j = 0;
-
-        for (let ix = 0; ix < AMOUNTX; ix++) {
-          for (let iy = 0; iy < AMOUNTY; iy++) {
-            // Create beautiful wave patterns
-            positions[i + 1] = (Math.sin((ix + count) * 0.3) * 50) +
-                               (Math.sin((iy + count) * 0.5) * 50);
-
-            scales[j] = (Math.sin((ix + count) * 0.3) + 1) * 20 +
-                        (Math.sin((iy + count) * 0.5) + 1) * 20;
-
-            i += 3;
-            j++;
-          }
-        }
-
-        geometry.attributes.position.needsUpdate = true;
-        geometry.attributes.scale.needsUpdate = true;
-
-        // Smooth camera follow
-        camera.position.x += (mouseX * 0.5 - camera.position.x) * 0.05;
-        camera.position.y += (-mouseY * 0.5 - camera.position.y) * 0.05;
-        camera.lookAt(scene.position);
-
-        renderer.render(scene, camera);
-      }
-
-      // ═══════════════════════════════════════════════════════════════
-      // RESPONSIVE HANDLING
-      // ═══════════════════════════════════════════════════════════════
-      function onWindowResize() {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      }
-
-      window.addEventListener('resize', onWindowResize);
-
-      // Start animation
-      animate();
-    }
-  </script>
+<!-- FOOTER -->
+<footer>
+  <div class="logo">Lead<span>Saver</span></div>
+  <p>AI Receptionist for Small Businesses</p>
+  <p><a href="tel:+18148948272">(814) 894-8272</a></p>
+  <p class="copyright">&copy; 2026 LeadSaver. All rights reserved.</p>
+</footer>
 
 </body>
 </html>
