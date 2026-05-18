@@ -12,10 +12,11 @@ Start by offering two paths:
 - Option A: they give you their website URL and you pull the info automatically
 - Option B: they enter info manually
 
-If they choose a website (or give you a URL at any point — including localhost addresses like localhost:3100, or any other URL format), say:
-"Great, give me a moment to pull your info from that site..." — the system will look up their site and inject the results as a [SCRAPED DATA] block.
-IMPORTANT: Accept ANY URL the caller provides, including localhost addresses. Never tell the caller their URL is invalid or ask them to provide a different one. Once you receive that block, read it back conversationally covering ALL of the following if found: business name, phone, hours, services, email address, and contact form URL. Ask the owner to confirm or correct anything.
-If the lookup failed, the block will say so — in that case collect the info manually. Never mention technical terms like "scrape", "scraping", or "failed to scrape" to the caller. Instead say "I wasn't able to find that on your website" or "I didn't catch that detail from your site."
+If they give you a website URL (including localhost addresses like localhost:3100):
+- First verify you understood it correctly. If it sounds garbled or unclear, say: "Sorry, I'm having a bit of trouble hearing that — could you spell it out for me? For example, l-o-c-a-l-h-o-s-t colon 3-1-0-0, or your actual dot-com address."
+- Only once you have a clear URL, say: "Great, give me a moment to pull your info from that site..." — the system will inject a [SCRAPED DATA] block. Read it back covering: business name, phone, hours, services, email, contact form URL. Ask owner to confirm.
+- NEVER say "give me a moment" unless you have a clear, confirmed URL.
+- If the lookup failed, collect info manually. Never say "scrape" to the caller.
 
 If they choose manual, collect these fields one at a time:
 1. Business name
@@ -82,37 +83,10 @@ BEGIN_MESSAGE = (
 DONE_SIGNAL = '"done": true'
 URL_PATTERN = re.compile(r'https?://[^\s]+|localhost:[0-9]+[^\s]*', re.IGNORECASE)
 
-# Spoken URL patterns — STT transcribes URLs as words
-# e.g. "localhost colon 3100", "localhost colon thirty one hundred", "almost phone thirty one hundred"
-_SPOKEN_PORT_MAP = {
-    "thirty one hundred": "3100", "thirty one zero zero": "3100", "thirty-one hundred": "3100",
-    "thirty one oh one": "3101", "thirty one zero one": "3101",
-    "three thousand": "3000", "three zero zero zero": "3000",
-    "eight thousand": "8000", "eighty hundred": "8000",
-    "three thousand ten": "3010", "thirty ten": "3010",
-}
-
-# Broader localhost aliases STT might produce
-_LOCALHOST_ALIASES = r'(?:localhost|local\s*host|local\s*host\s*dot\s*com|almost\s*phone|local\s*server|my\s*local|those|it\s*looks\s*at\s*those|looks\s*at\s*those)'
-
-
-def _normalize_spoken_url(text: str) -> str:
-    """Convert spoken URL forms to typed form before regex matching."""
-    result = text
-    # Normalize common STT artifacts before port map
-    result = re.sub(r'localhost\s+dot\s+com', 'localhost', result, flags=re.IGNORECASE)
-    for spoken, port in _SPOKEN_PORT_MAP.items():
-        result = re.sub(re.escape(spoken), port, result, flags=re.IGNORECASE)
-    # Handle various separators between localhost and port
-    result = re.sub(r'localhost\s+(?:colon|con|column|dot|on|at|slash|port)\s+', 'localhost:', result, flags=re.IGNORECASE)
-    # Handle broader STT aliases like "almost phone 3100" and "localhost dot com 3100"
-    result = re.sub(_LOCALHOST_ALIASES + r'[\s\w]*?\s+(?:colon|con|column|dot|on|at|slash|port)?\s*(\d{4})\b', r'localhost:\1', result, flags=re.IGNORECASE)
-    return result
-
 
 def extract_url(text: str) -> str | None:
-    normalized = _normalize_spoken_url(text)
-    match = URL_PATTERN.search(normalized)
+    """Extract a typed URL from text. Spoken/garbled URLs are handled by Gemini asking for clarification."""
+    match = URL_PATTERN.search(text)
     if match:
         url = match.group(0).rstrip('.,)')
         if not url.startswith('http'):
