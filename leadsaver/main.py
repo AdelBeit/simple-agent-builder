@@ -399,23 +399,30 @@ Only include fields they actually mentioned changing. Return valid JSON only, no
 # ---------------------------------------------------------------------------
 async def process_completed_call(call_id: str, transcript: str, business: dict | None):
     print(f"[CALL {call_id}] Processing completed call.")
-    info = extract_lead_info(transcript)
-
-    caller_name = info.get("caller_name", "Unknown")
+    info = extract_lead_info(transcript, business.get("services") if business else None)
+    caller_name = info.get("caller_name", "")
     caller_phone = info.get("caller_phone", "")
+    caller_email = info.get("caller_email", "")
     issue = info.get("issue_description", "")
     is_urgent = info.get("is_urgent", False)
+    extracted_service = info.get("service", "")
 
     lead_id = save_lead(caller_name=caller_name, caller_phone=caller_phone,
                         issue=issue, transcript=transcript)
     print(f"[LEAD] Saved lead #{lead_id}: {caller_name} / {caller_phone} / {issue}")
 
     contact_form_url = business.get("contact_form_url") if business else "http://localhost:3000/#contact"
-    service = "Emergency Plumbing" if is_urgent else "Drain Cleaning"
+    available_services = business.get("services", []) if business else []
+    if extracted_service and extracted_service in available_services:
+        service = extracted_service
+    elif available_services:
+        service = "Emergency Plumbing" if is_urgent else available_services[0]
+    else:
+        service = "Emergency Plumbing" if is_urgent else "Drain Cleaning"
     message = f"{issue}{' [URGENT]' if is_urgent else ''}"
 
     success = await submit_lead_to_form(
-        name=caller_name, phone=caller_phone, email="",
+        name=caller_name, phone=caller_phone, email=caller_email,
         service=service, message=message, form_url=contact_form_url,
     )
 
@@ -428,7 +435,9 @@ async def process_completed_call(call_id: str, transcript: str, business: dict |
     # Email owner notification
     if business and business.get("inbox_id") and business.get("owner_email"):
         lead_data = {"caller_name": caller_name, "caller_phone": caller_phone,
+                     "caller_email": caller_email,
                      "issue_description": issue, "is_urgent": is_urgent}
         ok = send_lead_notification(business["inbox_id"], business["owner_email"],
-                                    lead_data, business.get("name", ""))
+                                    lead_data, business.get("name", ""),
+                                    contact_form_url=contact_form_url if success else "")
         print(f"[LEAD] Owner notification email {'sent' if ok else 'FAILED'}")

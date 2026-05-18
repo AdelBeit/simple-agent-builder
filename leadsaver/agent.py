@@ -77,13 +77,17 @@ def get_reply(conversation_history: list[dict], new_message: str, business: dict
     return reply, call_complete
 
 
-def extract_lead_info(transcript: str) -> dict:
+def extract_lead_info(transcript: str, services: list[str] | None = None) -> dict:
     """Parse collected lead info from a full call transcript."""
+    services_list = ", ".join(services) if services else ""
+    services_instruction = f"\nMatch the caller's issue to the closest service from this list: [{services_list}]. Put it in the 'service' field." if services_list else ""
     prompt = f"""From this call transcript, extract:
 - caller_name
 - caller_phone
+- caller_email (if mentioned, otherwise empty string)
 - issue_description
 - is_urgent (true/false)
+- service (the specific service the caller needs){services_instruction}
 
 Return only valid JSON, no markdown.
 
@@ -94,4 +98,4 @@ Transcript:
     try:
         return json.loads(response.text.strip())
     except Exception:
-        return {"caller_name": "", "caller_phone": "", "issue_description": transcript[:200], "is_urgent": False}
+        return {"caller_name": "", "caller_phone": "", "caller_email": "", "issue_description": transcript[:200], "is_urgent": False, "service": ""}
