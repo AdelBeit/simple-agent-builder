@@ -56,7 +56,7 @@ def build_begin_message(business: dict, caller_number: str = "") -> str:
 BEGIN_MESSAGE = build_begin_message(BUSINESS)
 
 
-def get_reply(conversation_history: list[dict], new_message: str, business: dict | None = None, caller_number: str = "", moss_context: str = "") -> tuple[str, bool]:
+async def get_reply(conversation_history: list[dict], new_message: str, business: dict | None = None, caller_number: str = "", moss_context: str = "") -> tuple[str, bool]:
     """Returns (reply_text, call_complete). Uses DB business if provided, else falls back to config."""
     biz = business or BUSINESS
     system_prompt = _build_system_prompt(biz, caller_number)
@@ -66,10 +66,25 @@ def get_reply(conversation_history: list[dict], new_message: str, business: dict
         for turn in conversation_history
     ]
 
-    # Inject Moss context as additional knowledge for this turn
+    # Query Supermemory for relevant context if business_id exists
+    supermemory_context = ""
+    if biz.get("id"):
+        try:
+            from supermemory import query_profile
+            supermemory_context = await query_profile(biz["id"], new_message, limit=3)
+        except Exception as e:
+            print(f"[SUPERMEMORY] Query failed: {e}")
+
+    # Inject Moss context and Supermemory context as additional knowledge for this turn
     user_text = new_message
+    context_parts = []
     if moss_context:
-        user_text = f"{new_message}\n\n[Relevant business info]: {moss_context}"
+        context_parts.append(f"[Relevant business info from Moss]: {moss_context}")
+    if supermemory_context:
+        context_parts.append(f"[Relevant business info from knowledge base]: {supermemory_context}")
+
+    if context_parts:
+        user_text = f"{new_message}\n\n" + "\n\n".join(context_parts)
 
     response = client.models.generate_content(
         model=GEMINI_MODEL,

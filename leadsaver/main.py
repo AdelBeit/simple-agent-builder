@@ -80,7 +80,7 @@ async def handle_call(request: Request, background_tasks: BackgroundTasks):
     if business and business.get("id"):
         moss_context = await query_profile(business["id"], caller_text, name=business.get("name", ""), email=business.get("owner_email", ""))
 
-    reply, call_complete = get_reply(state["history"], caller_text, business=business, caller_number=state.get("caller_number"), moss_context=moss_context)
+    reply, call_complete = await get_reply(state["history"], caller_text, business=business, caller_number=state.get("caller_number"), moss_context=moss_context)
 
     state["history"].append({"role": "user", "parts": [caller_text]})
     state["history"].append({"role": "model", "parts": [reply]})
@@ -429,10 +429,10 @@ async def complete_onboarding(session_id: str, data: dict):
     except Exception as e:
         print(f"[ONBOARDING] AgentMail inbox creation failed (non-fatal): {e}")
 
-    # 3. Scrape website + index in Moss
+    # 3. Scrape website + index in Moss and Supermemory
     if data.get("website_url"):
         print(f"[ONBOARDING] Scraping {data['website_url']} ...")
-        profile_text = await scrape_business_website(data["website_url"])
+        profile_text = await scrape_business_website(data["website_url"], business_id=biz_id)
         if profile_text:
             update_business_profile(biz_id, profile_text)
             print(f"[ONBOARDING] Profile enriched ({len(profile_text)} chars)")

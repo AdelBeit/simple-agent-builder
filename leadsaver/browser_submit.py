@@ -31,7 +31,7 @@ async def submit_lead_to_form(name: str, phone: str, email: str, service: str,
         return False
 
 
-async def scrape_business_website(url: str) -> str:
+async def scrape_business_website(url: str, business_id: int | None = None) -> str:
     """Fetch a business website and extract a plain-text profile summary."""
     import httpx
     from bs4 import BeautifulSoup
@@ -67,7 +67,14 @@ Website text:
 Return plain text, no markdown."""
 
         response = client_g.models.generate_content(model=GEMINI_MODEL, contents=prompt)
-        return response.text.strip()
+        profile_text = response.text.strip()
+
+        # Store in Supermemory if business_id provided
+        if business_id and profile_text:
+            from supermemory import store_profile
+            await store_profile(business_id, profile_text)
+
+        return profile_text
 
     except Exception as e:
         print(f"[SCRAPE] Failed for {url}: {e}")

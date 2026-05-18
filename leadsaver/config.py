@@ -51,6 +51,9 @@ AGENTMAIL_BASE_URL = "https://api.agentmail.to/v0"
 AGENTMAIL_DOMAIN = "agentmail.to"
 NGROK_DOMAIN = os.getenv("NGROK_WEBSITE", "").replace("https://", "").replace("http://", "")
 
+# Supermemory
+SUPERMEMORY_API_KEY = os.getenv("SUPERMEMORY_API_KEY")
+
 # Ports
 PORT_BACKEND = int(os.getenv("PORT_BACKEND", "8000"))
 PORT_PLUMBER = int(os.getenv("PORT_PLUMBER", "3100"))

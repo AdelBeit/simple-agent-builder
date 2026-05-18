@@ -45,6 +45,9 @@ desktop.ini
 *.swp
 *.swo
 
+# Claude Code
+.claude/settings.json
+
 # Logs
 *.log
 logs/
