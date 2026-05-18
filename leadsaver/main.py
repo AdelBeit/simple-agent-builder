@@ -251,6 +251,10 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
     state["transcript"] += f"\nAgent: {reply}"
 
     if business_data:
+        # Carry scraped text into business_data for email fallback
+        if state.get("scraped") and not business_data.get("profile_text"):
+            business_data["scraped_text"] = state.get("transcript", "")
+
         # Provision agent synchronously so we have the number for the transfer offer
         agent_number = ""
         try:
@@ -374,6 +378,30 @@ def list_businesses():
 async def complete_onboarding(session_id: str, data: dict):
     print(f"[ONBOARDING {session_id}] Saving business: {data.get('name')}")
 
+    # 0. Email fallback — if Gemini didn't capture it, extract from profile_text or scraped data
+    owner_email = data.get("owner_email", "").strip()
+    if not owner_email:
+        # Try to extract from scraped profile text using Gemini
+        profile_hint = data.get("profile_text", "") or data.get("scraped_text", "")
+        if profile_hint:
+            try:
+                from google import genai as _g
+                from config import GEMINI_API_KEY, GEMINI_MODEL
+                _gc = _g.Client(api_key=GEMINI_API_KEY)
+                resp = _gc.models.generate_content(
+                    model=GEMINI_MODEL,
+                    contents=f"Extract the business owner or contact email address from this text. Return only the email address, nothing else. If none found, return empty string.\n\n{profile_hint}"
+                )
+                extracted = resp.text.strip().lower()
+                if "@" in extracted and "." in extracted:
+                    owner_email = extracted
+                    data["owner_email"] = owner_email
+                    print(f"[ONBOARDING] Email extracted from profile: {owner_email}")
+            except Exception:
+                pass
+        if not owner_email:
+            print(f"[ONBOARDING] WARNING: no owner_email — summary email will not be sent")
+
     # 1. Save business to DB first — always, regardless of downstream failures
     biz_id = save_business(
         name=data.get("name", ""),
@@ -382,7 +410,7 @@ async def complete_onboarding(session_id: str, data: dict):
         contact_form_url=data.get("contact_form_url", ""),
         hours=data.get("hours", ""),
         services=data.get("services", []),
-        owner_email=data.get("owner_email", ""),
+        owner_email=owner_email,
     )
     print(f"[ONBOARDING] Business saved as ID #{biz_id}")
 
