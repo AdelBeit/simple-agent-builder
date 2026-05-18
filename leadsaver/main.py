@@ -43,7 +43,7 @@ async def handle_call(request: Request, background_tasks: BackgroundTasks):
     print(f"[CALL] Payload: {payload}")
     data = payload.get("data", payload)  # AgentPhone wraps fields in "data"
     event = payload.get("event") or payload.get("type", "")
-    call_id = data.get("callId") or payload.get("callId") or payload.get("id", "unknown")
+    call_id = data.get("callId") or payload.get("callId") or payload.get("id") or f"anon_{int(__import__("time").time()*1000)}"
     agentphone_number = data.get("to") or payload.get("to") or payload.get("toNumber", "")
 
     # Ignore call_ended events
@@ -102,7 +102,8 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
     data = payload.get("data", payload)
     event = payload.get("event") or payload.get("type", "")
     session_id = (data.get("callId") or payload.get("callId") or
-                  data.get("id") or payload.get("id") or "unknown")
+                  data.get("id") or payload.get("id") or
+                  f"anon_{int(__import__('time').time()*1000)}")
 
     if event == "agent.call_ended":
         active_greeter.pop(session_id, None)
@@ -194,7 +195,7 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
     payload = await request.json()
     data = payload.get("data", payload)
     event = payload.get("event") or payload.get("type", "")
-    session_id = data.get("callId") or payload.get("callId") or payload.get("id", "unknown")
+    session_id = data.get("callId") or payload.get("callId") or payload.get("id") or f"anon_{int(__import__("time").time()*1000)}"
     caller_text_log = data.get("transcript") or payload.get("text", "")
     import time as _time
     _t0 = _time.time()
