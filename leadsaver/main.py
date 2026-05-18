@@ -111,11 +111,11 @@ async def handle_greeter(request: Request, background_tasks: BackgroundTasks):
         active_calls.pop(session_id, None)
         return JSONResponse({"status": "ok"})
 
-    # Route demo business agent calls to handle_call
     agent_id = payload.get("agentId") or data.get("agentId", "")
     print(f"[FLOW] session={session_id[-8:]} agentId={agent_id[-8:] if agent_id else 'none'}")
+
+    # Route demo business agent → live call handler; everything else goes through greeter flow
     if agent_id == AGENTPHONE_AGENT_ID:
-        print(f"[FLOW] Routing to handle_call for demo agent")
         return await handle_call(request, background_tasks)
 
     # Route to active call (demo business receptionist)
@@ -190,7 +190,7 @@ If not interested after 3 exchanges, politely end the call."""
 # ---------------------------------------------------------------------------
 # Webhook: AgentPhone onboarding call (business setup interview)
 # ---------------------------------------------------------------------------
-@app.post("/webhook/onboarding")
+# Internal handler — called from handle_greeter, not exposed as a separate webhook
 async def handle_onboarding(request: Request, background_tasks: BackgroundTasks):
     payload = await request.json()
     data = payload.get("data", payload)
@@ -317,47 +317,10 @@ async def handle_onboarding(request: Request, background_tasks: BackgroundTasks)
 
 
 # ---------------------------------------------------------------------------
-# POST /onboarding/start — trigger onboarding via HTTP (test without AgentPhone)
-# ---------------------------------------------------------------------------
-@app.post("/onboarding/start")
-async def onboarding_start():
-    return {"session_id": "test", "message": ONBOARDING_BEGIN}
-
-
-@app.post("/onboarding/message")
-async def onboarding_message(request: Request, background_tasks: BackgroundTasks):
-    body = await request.json()
-    session_id = body.get("session_id", "test")
-    message = body.get("message", "")
-
-    state = active_onboarding.setdefault(session_id, {"history": [], "transcript": ""})
-
-    # Detect URL in message — scrape immediately and inject results
-    scraped_data = None
-    url = extract_url(message)
-    if url and not state.get("scraped"):
-        state["scraped"] = True
-        state["website_url"] = url
-        scraped_data = await scrape_business_website(url)
-        if not scraped_data:
-            # TODO: remove localhost exception after demo — production should reject unreachable URLs
-            scraped_data = f"(Could not scrape {url} automatically — please collect business info manually from the caller)"
-
-    reply, business_data = get_onboarding_reply(state["history"], message, scraped_data=scraped_data)
-
-    # Store message with scraped data appended so history is accurate
-    stored_message = f"{message}\n\n[SCRAPED DATA]\n{scraped_data}" if scraped_data else message
-    state["history"].append({"role": "user", "parts": [stored_message]})
-    state["history"].append({"role": "model", "parts": [reply]})
-
-    if business_data:
-        if state.get("website_url") and not business_data.get("website_url"):
-            business_data["website_url"] = state["website_url"]
-        background_tasks.add_task(complete_onboarding, session_id, business_data)
-        active_onboarding.pop(session_id, None)
-        return {"reply": reply, "done": True, "business": business_data}
-
-    return {"reply": reply, "done": False, "scraping": bool(scraped_data)}
+# /onboarding/start and /onboarding/message removed — onboarding is now part of
+# the unified greeter flow via /webhook/greeter. Use the onboarding chat UI at
+# localhost:3010 for testing (it drives the same handle_onboarding logic via
+# the greeter webhook with a test session).
 
 
 # ---------------------------------------------------------------------------
