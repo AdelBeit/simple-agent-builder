@@ -57,14 +57,14 @@ async def scrape_business_website(url: str) -> str:
 - Services offered (list)
 - Business hours
 - Phone number and address
-- Email address (if found anywhere on the page)
-- Contact form URL (if there is a dedicated contact/booking page)
+- Email address (if found anywhere on the page) — label as "Email:"
+- Contact form URL — if a contact form exists on this page ({url}), the contact form URL is {url}#contact unless a different URL is explicitly mentioned. Label as "Contact Form URL:"
 - Any pricing info
 
 Website text:
 {raw_text}
 
-Return plain text, no markdown. If an email address is found on the site, include it clearly labeled as "Email:" so it can be pre-filled for the owner."""
+Return plain text, no markdown."""
 
         response = client_g.models.generate_content(model=GEMINI_MODEL, contents=prompt)
         return response.text.strip()
